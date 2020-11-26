@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@android:color/background_dark"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <LinearLayout
+            android:id="@+id/btn_dismiss"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            android:layout_width="wrap_content"
+            android:paddingRight="16dp"
+            android:layout_height="40dp">
+        <ImageView
+                android:src="@drawable/ic_back"
+                android:layout_width="22dp"
+                android:layout_height="22dp"/>
+    </LinearLayout>
+
+
+    <TextView
+            android:id="@+id/tv_dir_label"
+            android:text="Upload photos to KEEPER"
+            android:gravity="center_vertical"
+            android:textColor="@color/colorWhite"
+            app:layout_constraintTop_toTopOf="@id/tv_dir"
+            app:layout_constraintBottom_toBottomOf="@id/tv_dir"
+            app:layout_constraintLeft_toLeftOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"/>
+
+    <TextView
+            android:id="@+id/tv_dir"
+            android:gravity="center_vertical|end"
+            android:textColor="@color/colorWhite"
+            app:layout_constraintTop_toBottomOf="@id/btn_dismiss"
+            app:layout_constraintRight_toLeftOf="@id/iv_dir"
+            app:layout_constraintLeft_toRightOf="@id/tv_dir_label"
+            android:layout_width="0dp"
+            android:lines="1"
+            android:ellipsize="end"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_height="44dp"/>
+
+    <ImageView
+            android:id="@+id/iv_dir"
+            android:src="@mipmap/pulldown"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tv_dir"
+            app:layout_constraintBottom_toBottomOf="@id/tv_dir"
+            android:layout_width="16dp"
+            android:layout_height="16dp"/>
+
+    <View
+            app:layout_constraintTop_toBottomOf="@id/tv_dir"
+            android:background="@color/colorWhite"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"/>
+
+    <TextView
+            android:text="Upload photos to KEEPER via"
+            android:gravity="center_vertical"
+            android:textColor="@color/colorWhite"
+            app:layout_constraintTop_toTopOf="@id/tv_network"
+            app:layout_constraintBottom_toBottomOf="@id/tv_network"
+            app:layout_constraintLeft_toLeftOf="parent"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"/>
+
+    <TextView
+            android:id="@+id/tv_network"
+            android:text="Wifi only"
+            android:gravity="center_vertical"
+            android:textColor="@color/colorWhite"
+            app:layout_constraintTop_toBottomOf="@id/tv_dir"
+            app:layout_constraintRight_toLeftOf="@id/iv_dir"
+            android:layout_width="wrap_content"
+            android:paddingEnd="8dp"
+            android:layout_height="44dp"/>
+
+    <ImageView
+            android:id="@+id/iv_network"
+            android:src="@mipmap/pulldown"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tv_network"
+            app:layout_constraintBottom_toBottomOf="@id/tv_network"
+            android:layout_width="16dp"
+            android:layout_height="16dp"/>
+    <Spinner
+            android:id="@+id/sp_network"
+            app:layout_constraintTop_toBottomOf="@id/tv_network"
+            app:layout_constraintRight_toRightOf="@id/iv_network"
+            app:layout_constraintRight_toLeftOf="@id/tv_network"
+            android:entries="@array/upload_network"
+            android:spinnerMode="dialog"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+
+    <View
+            app:layout_constraintTop_toBottomOf="@id/tv_network"
+            android:background="@color/colorWhite"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"/>
+
+    <TextView
+            android:id="@+id/btn_logout"
+            android:textColor="@color/colorWhite"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:text="logout"
+            app:layout_constraintTop_toBottomOf="@id/tv_network"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"/>
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

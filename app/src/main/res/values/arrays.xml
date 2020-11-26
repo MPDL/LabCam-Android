@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="upload_network">
+        <item>Wifi only</item>
+        <item>Cellular</item>
+    </string-array>
+
+
+</resources>

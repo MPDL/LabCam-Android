@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">LabCam</string>
+    <string name="login_fail">Incorrect email or password</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#006F7B</color>
+    <color name="colorPrimaryDark">#006F7B</color>
+    <color name="colorAccent">#5AC9CB</color>
+
+    <color name="color5AC9CB">#5AC9CB</color>
+    <color name="colorB8BCBF">#B8BCBF</color>
+    <color name="color9BC1C6">#9BC1C6</color>
+    <color name="colorWhite">#FFFFFFFF</color>
+    <color name="icActive">#FFFFFFFF</color>
+    <color name="icFocused">#DDFFFFFF</color>
+    <color name="icPressed">#AAFFFFFF</color>
+    <color name="color51">#515151</color>
+</resources>
