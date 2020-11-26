@@ -1,0 +1,137 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: "androidx.navigation.safeargs"
+//apply plugin: 'com.google.gms.google-services'  // Google Services plugin
+
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "29.0.3"
+    defaultConfig {
+        applicationId "de.mpg.mpdl.labcam"
+        minSdkVersion 23
+        targetSdkVersion 30
+        versionCode 100
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            // 设置支持的SO库架构
+            abiFilters 'armeabi', 'x86' //, 'armeabi-v7a', 'x86_64', 'arm64-v8a'
+        }
+    }
+
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    signingConfigs {
+        release {
+            keyAlias rootProject.ext.labcam_config["key-alias"]
+            keyPassword rootProject.ext.labcam_config["key-password"]
+            storeFile file('../LabCamKey.jks')
+            storePassword rootProject.ext.labcam_config["store-password"]
+        }
+    }
+
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+
+            buildConfigField "String", "API_BASE_URL", "\"https://keeper.mpdl.mpg.de/\""
+            buildConfigField "String", "BUGLY_APP_ID", rootProject.ext.labcam_config["bugly-app-id"]
+            buildConfigField "String", "DEBUG_ACCOUNT", "\"\""
+            buildConfigField "String", "DEBUG_PASSWORD", "\"\""
+        }
+
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            buildConfigField "String", "API_BASE_URL", "\"https://keeper.mpdl.mpg.de/\""
+            buildConfigField "String", "BUGLY_APP_ID", rootProject.ext.labcam_config["bugly-app-id"]
+            buildConfigField "String", "DEBUG_ACCOUNT", rootProject.ext.labcam_config["debug-account"]
+            buildConfigField "String", "DEBUG_PASSWORD", rootProject.ext.labcam_config["debug-password"]
+
+
+        }
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    applicationVariants.all {
+        //判断是release还是debug版本
+        def buildType = it.buildType.name
+        def fileName
+        //只对Release包起作用，如果不是Release包则不变更输出路径，否则可能导致AS无法自动安装debug包。
+        if (buildType == "release") {
+            it.getPackageApplication().outputDirectory = new File(project.rootDir.absolutePath + "/apks")
+        }
+        it.outputs.each {
+            //只对Release包起作用，如果不是Release包则不变更名称。
+            if (buildType == "release") {
+                //我此处的命名规则是：渠道名_项目名_版本名_创建时间_构建类型.apk
+                fileName = "${buildType}_v${defaultConfig.versionName}.apk"
+                //将名字打印出来，以便及时查看是否满意。
+                println "文件名：-----------------${fileName}"
+                //重新对apk命名。(适用于Gradle4.0以下版本)
+                //it.outputFile = new File(it.outputFile.parent, fileName)
+                //重新对apk命名。(适用于Gradle4.0（含）以上版本)如果你Gradle版本是4.0以下版本则将上面的一行代码放开并注释下面的这一行。
+                it.outputFileName = fileName
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.core:core-ktx:1.3.2'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+
+    def leakcanary_version = "1.6.3"
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    // leakcanary
+    debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
+    releaseImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$leakcanary_version"
+
+    implementation "org.simple:androideventbus:1.0.5.1"
+    // nav
+    implementation rootProject.ext.dependencies["nav-fragment-ktx"]
+    implementation rootProject.ext.dependencies["nav-ui-ktx"]
+
+
+    // CameraX
+    def camerax_version = "1.0.0-beta11"
+    implementation "androidx.camera:camera-camera2:$camerax_version"
+    implementation "androidx.camera:camera-lifecycle:$camerax_version"
+    implementation "androidx.camera:camera-view:1.0.0-alpha18"
+
+    // Text features
+    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:16.1.1'
+
+    //bugly
+    //其中latest.release指代最新Bugly SDK版本号，也可以指定明确的版本号，例如2.1.9
+    implementation 'com.tencent.bugly:nativecrashreport:latest.release'
+    //其中latest.release指代最新Bugly NDK版本号，也可以指定明确的版本号，例如3.0
+    implementation 'com.tencent.bugly:crashreport_upgrade:latest.release'
+
+
+//    implementation 'com.google.firebase:firebase-ml-vision:24.0.3'
+
+    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:16.1.1'
+
+
+    implementation project(path: ':mvvm')
+}
