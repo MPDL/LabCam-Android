@@ -17,7 +17,7 @@
 
     <!--启动页-->
     <style name="LaunchTheme" parent="AppTheme">
-        <item name="android:windowBackground">@color/colorPrimary</item>
+        <item name="android:windowBackground">@drawable/launch_bg</item>
     </style>
 
     <style name="popwindow_anim_style">

@@ -2,17 +2,20 @@ package com.mpdl.labcam.mvvm.ui.fragment
 
 import android.annotation.SuppressLint
 import android.app.ProgressDialog
+import android.content.ContentResolver
+import android.content.ContentValues
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.hardware.display.DisplayManager
-import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.DisplayMetrics
-import android.util.Log
 import android.view.*
-import android.webkit.MimeTypeMap
 import android.widget.*
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -28,8 +31,6 @@ import com.mpdl.labcam.detecort.TextRecognitionProcessor
 import com.mpdl.labcam.detecort.VisionImageProcessor
 import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
-import com.mpdl.labcam.mvvm.ui.activity.MainActivity.Companion.EVENT_UPLOAD_OVER
-import com.mpdl.labcam.mvvm.ui.adapter.MyImageAnalyzer
 import com.mpdl.labcam.mvvm.ui.widget.CustomPopupWindow
 import com.mpdl.labcam.mvvm.ui.widget.CustomPreviewView
 import com.mpdl.labcam.mvvm.ui.widget.FileSelectorDialog
@@ -45,8 +46,8 @@ import org.simple.eventbus.EventBus
 import org.simple.eventbus.Subscriber
 import timber.log.Timber
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
+import java.io.IOException
+import java.io.OutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -64,8 +65,6 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     private var imageProcessor: VisionImageProcessor? = null
     private var needUpdateGraphicOverlayImageSourceInfo = false
     private var cameraSelector: CameraSelector? = null
-
-
 
     private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
     private var preview: Preview? = null
@@ -128,6 +127,8 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
 
         initFileSelectorDialog()
 
+        setOcrStatus()
+
         checkDirPath()
 
         // Wait for the views to be properly laid out
@@ -138,16 +139,13 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             setUpCamera()
         }
 
-        // In the background, load latest photo taken (if any) for gallery thumbnail
-        lifecycleScope.launch(Dispatchers.IO) {
-            outputDirectory.listFiles { file ->
-                MainActivity.EXTENSION_WHITELIST.contains(file.extension.toUpperCase(Locale.ROOT))
-            }?.max()?.let {
-                setGalleryThumbnail(Uri.fromFile(it))
-            }
+
+        if (MainActivity.galleryList.size > 0){
+            setGalleryThumbnail(MainActivity.galleryList[0])
         }
 
         observe(mViewModel.getDirectoryData()){list->
+            Timber.d("getDirectoryData observe: $list")
             fileSelectorDialog?.let {
                 it.setData(list)
             }
@@ -174,6 +172,9 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                 fileSelectorDialog?.show()
             }
 
+            if (it.getDirError){
+                fileSelectorDialog?.setData(null)
+            }
         }
 
         setClickListener()
@@ -195,11 +196,10 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         }
 
         btn_photo_view.setOnClickListener {
-            if (true == outputDirectory.listFiles()?.isNotEmpty()) {
+            if (MainActivity.galleryList.size > 0) {
                 mViewModel.cleanUiState()
                 Navigation.findNavController(requireView())
-                    .navigate(CameraFragmentDirections
-                        .actionCameraFragmentToGalleryFragment(outputDirectory.absolutePath))
+                    .navigate(CameraFragmentDirections.actionCameraFragmentToGalleryFragment())
             }
         }
 
@@ -210,7 +210,13 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         btn_menu.setOnClickListener {
             showPopup()
         }
+
+        btn_ocr.setOnClickListener {
+            MainActivity.openOcr = !MainActivity.openOcr
+            setOcrStatus()
+        }
     }
+
 
     /** Initialize CameraX, and prepare to bind the camera use cases  */
     private fun setUpCamera() {
@@ -316,9 +322,6 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
 
 
     private fun bindAnalysisUseCase() {
-        if (true){
-            return
-        }
         cameraProvider?.let {
             if (analysisUseCase != null) {
                 it.unbind(analysisUseCase)
@@ -341,7 +344,8 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             needUpdateGraphicOverlayImageSourceInfo = true
             analysisUseCase?.setAnalyzer(ContextCompat.getMainExecutor(requireContext()),
                 ImageAnalysis.Analyzer { imageProxy: ImageProxy ->
-                    if (needUpdateGraphicOverlayImageSourceInfo) {
+                    Timber.e("imageProxy: ${imageProxy.width}")
+                    if (MainActivity.openOcr){
                         val isImageFlipped =
                             lensFacing == CameraSelector.LENS_FACING_FRONT
                         val rotationDegrees =
@@ -356,18 +360,18 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                             )
                         }
                         needUpdateGraphicOverlayImageSourceInfo = false
-                    }
 
-                    try {
-                        imageProcessor!!.processImageProxy(imageProxy, graphicOverlay)
-                    } catch (e: MlKitException) {
-                        Timber.e("Failed to process image. Error: ${e.localizedMessage}")
-//                        showMessage(e.localizedMessage)
+                        try {
+                            imageProcessor!!.processImageProxy(imageProxy, graphicOverlay)
+                        } catch (e: MlKitException) {
+                            Timber.e("Failed to process image. Error: ${e.localizedMessage}")
+                        }
                     }
             })
             it.bindToLifecycle(this, cameraSelector!!, analysisUseCase)
         }
     }
+
 
     private var lastTakePictureTime: Long = 0
 
@@ -380,7 +384,7 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         // Get a stable reference of the modifiable image capture use case
         imageCapture?.let { imageCapture ->
             // Create output file to hold the image
-            val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
+            val photoFile = MainActivity.createImage(outputDirectory)
             // Setup image capture metadata
             val metadata = ImageCapture.Metadata().apply {
                 // Mirror image when using the front camera
@@ -400,16 +404,16 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
 
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                         val savedUri = output.savedUri ?: Uri.fromFile(photoFile)
+
                         setGalleryThumbnail(savedUri)
 
-                        val mimeType = MimeTypeMap.getSingleton()
-                            .getMimeTypeFromExtension(savedUri.toFile().extension)
-                        MediaScannerConnection.scanFile(
-                            context,
-                            arrayOf(savedUri.toFile().absolutePath),
-                            arrayOf(mimeType)
-                        ) { _, uri ->
-                            Timber.d("Image capture scanned into media store: $uri")
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            var bitmap = BitmapFactory.decodeFile(savedUri.toFile().absolutePath)
+
+                            if (MainActivity.openOcr){
+                                imageProcessor!!.processBitmap(bitmap,savedUri.toFile().name ,graphicOverlay)
+                            }
+                            saveBitmap(requireContext(),bitmap)
                         }
                         Timber.d( "Photo capture succeeded: $savedUri")
                         MainActivity.startUpload()
@@ -418,13 +422,64 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         }
     }
 
+    private fun saveBitmap(context: Context, bitmap: Bitmap) {
+        val values = ContentValues()
+        values.put(MediaStore.Images.Media.DESCRIPTION, "This is an image")
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "Image.jpg")
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/JPEG")
+        values.put(
+            MediaStore.Images.Media.TITLE,
+            System.currentTimeMillis().toString() + ".jpg"
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/Camera")
+        }
+        val external: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        val resolver: ContentResolver = context.contentResolver
+        val insertUri: Uri? = resolver.insert(external, values)
+        Timber.d("saveBitmap insertUri:$insertUri")
+        insertUri?.let {
+            var os: OutputStream? = null
+            try {
+                MainActivity.galleryList.add(0,it)
+                os = resolver.openOutputStream(it)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, os)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    os?.flush()
+                    os?.close()
+                    bitmap.recycle()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+    }
+
     private fun setGalleryThumbnail(uri: Uri) {
         btn_photo_view.post {
-            Glide.with(btn_photo_view)
+            Glide.with(this)
                 .load(uri)
+                    .override(btn_photo_view.width,btn_photo_view.height)
+//                    .fitCenter()
                 .apply(RequestOptions.circleCropTransform())
                 .into(btn_photo_view)
         }
+    }
+
+    private fun setOcrStatus() {
+        Timber.d("openOcr: ${MainActivity.openOcr}")
+        if (MainActivity.openOcr){
+            btn_ocr.setTextColor(resources.getColor(R.color.colorWhite))
+        }else{
+            btn_ocr.setTextColor(resources.getColor(R.color.color51))
+        }
+        try {
+            bindAnalysisUseCase()
+        }catch (e:java.lang.Exception){}
     }
 
     private fun clickFlash(){
@@ -492,7 +547,13 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                     showMessage("Please select a directory")
                 }else{
                     MainActivity.setSaveDirectory(bean)
-                    mViewModel.getUploadLink(bean)
+                    if (MainActivity.isNetworkConnected()){
+                        MainActivity.setUploadUrl("")
+                        mViewModel.getUploadLink(bean)
+                    }else{
+                        tvDir?.text = bean.repoName+bean.path
+                        fileSelectorDialog?.dismiss()
+                    }
                 }
             }
 
@@ -632,26 +693,20 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         progressDialog?.dismiss()
     }
 
-    @Subscriber(tag = EVENT_UPLOAD_OVER)
+    @Subscriber(tag = MainActivity.EVENT_UPLOAD_OVER)
     fun uploadOver(msg:String){
-        Timber.d("上传 完成通知")
+        Timber.d("单张图片上传 完成通知")
         if (outputDirectory.listFiles().isEmpty()){
-            btn_photo_view.setImageResource(R.drawable.ic_photo)
+//            btn_photo_view.setImageResource(R.drawable.ic_photo)
         }
     }
 
     companion object {
-        private const val SP_FLASH_MODE = "sp_flash_mode";
-        private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
-        private const val PHOTO_EXTENSION = ".jpg"
-        private const val VIDEO_EXTENSION = ".mp4"
-        private const val RATIO_4_3_VALUE = 4.0 / 3.0
-        private const val RATIO_16_9_VALUE = 16.0 / 9.0
-
-        /** Helper function used to create a timestamped file */
-        private fun createFile(baseFolder: File, format: String, extension: String) =
-            File(baseFolder, SimpleDateFormat(format, Locale.GERMAN)
-                .format(System.currentTimeMillis()) + extension)
+        const val SP_FLASH_MODE = "sp_flash_mode";
+        const val RATIO_4_3_VALUE = 4.0 / 3.0
+        const val RATIO_16_9_VALUE = 16.0 / 9.0
     }
+
+
 
 }

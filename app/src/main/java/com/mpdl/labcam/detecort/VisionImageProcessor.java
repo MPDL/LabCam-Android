@@ -25,13 +25,14 @@ import androidx.camera.core.ImageProxy;
 import com.google.mlkit.common.MlKitException;
 import com.mpdl.labcam.mvvm.ui.widget.GraphicOverlay;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 /** An interface to process the images with different vision detectors and custom image models. */
 public interface VisionImageProcessor {
 
   /** Processes a bitmap image. */
-  void processBitmap(Bitmap bitmap, GraphicOverlay graphicOverlay);
+  void processBitmap(Bitmap bitmap, String file, GraphicOverlay graphicOverlay);
 
   /** Processes ByteBuffer image data, e.g. used for Camera1 live preview case. */
   void processByteBuffer(
