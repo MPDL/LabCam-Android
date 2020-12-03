@@ -1,6 +1,11 @@
 package com.mpdl.labcam.mvvm.ui.activity
 
 import android.content.*
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.NetworkInfo
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.text.TextUtils
@@ -21,6 +26,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity: BaseActivity<MainViewModel>()  {
     override fun initViewModel(): MainViewModel = getViewModel()
@@ -28,8 +35,11 @@ class MainActivity: BaseActivity<MainViewModel>()  {
     override fun initView(savedInstanceState: Bundle?): Int = R.layout.activity_main
 
     override fun initData(savedInstanceState: Bundle?) {
+        context = applicationContext
         okHttpClient = mViewModel.okHttpClient
         Timber.d("okHttpClient $okHttpClient")
+
+        galleryList.clear()
 
         val filter = IntentFilter()
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE")
@@ -63,11 +73,19 @@ class MainActivity: BaseActivity<MainViewModel>()  {
     }
 
     companion object {
-        public const val EVENT_UPLOAD_OVER:String = "event_upload_over"
+        const val EVENT_UPLOAD_OVER:String = "event_upload_over"
         private const val SP_UPLOAD_URL = "sp_upload_url"
         private const val SP_TOKEN = "sp_token"
         private const val SP_SAVE_DIRECTORY = "sp_save_directory"
         private const val SP_UPLOAD_NETWORK = "sp_upload_network"
+
+        const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
+        const val PHOTO_EXTENSION = ".jpg"
+        const val VIDEO_EXTENSION = ".mp4"
+        const val TEXT_EXTENSION = ".md"
+
+
+        var context: Context? = null
 
         var okHttpClient: OkHttpClient? = null
 
@@ -79,8 +97,27 @@ class MainActivity: BaseActivity<MainViewModel>()  {
 
         private var retrofit: Retrofit? = null
 
+        val galleryList :MutableList<Uri> = mutableListOf()
+
+        var openOcr:Boolean = false
+
+
+        /** Helper function used to create a timestamped file */
+        fun createFile(baseFolder: File, format: String, extension: String) =
+            File(baseFolder, SimpleDateFormat(format, Locale.GERMAN)
+                .format(System.currentTimeMillis()) + extension)
+
+        fun createImage(baseFolder: File) =
+            File(baseFolder, SimpleDateFormat(FILENAME, Locale.GERMAN)
+                .format(System.currentTimeMillis()) + PHOTO_EXTENSION)
+
+        fun createText(baseFolder: File,name: String)=
+            File(baseFolder, name.replace(".","_") + TEXT_EXTENSION)
+
+
+
         fun cleanRetrofit(){
-            retrofit = null;
+            retrofit = null
         }
         fun getRetrofit(): Retrofit?{
             Timber.d("okHttpClient $okHttpClient")
@@ -149,6 +186,7 @@ class MainActivity: BaseActivity<MainViewModel>()  {
         }
 
         fun loginOut(){
+            galleryList.clear()
             setToken("")
             setUploadUrl("")
             setSaveDirectory(null)
@@ -187,8 +225,6 @@ class MainActivity: BaseActivity<MainViewModel>()  {
             return uploadNetwork
         }
 
-
-
         val EXTENSION_WHITELIST = arrayOf("JPG")
         /** Use external media if it is available, our app's file directory otherwise */
         fun getOutputDirectory(context: Context): File {
@@ -202,5 +238,17 @@ class MainActivity: BaseActivity<MainViewModel>()  {
                 appContext.filesDir
             }
         }
+
+        fun isNetworkConnected(): Boolean {
+            return try {
+                val mConnectivityManager: ConnectivityManager = context!!
+                    .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                val mNetworkInfo: NetworkInfo = mConnectivityManager.activeNetworkInfo!!
+                mNetworkInfo.isAvailable
+            }catch (e:Exception){
+                false
+            }
+        }
+
     }
 }

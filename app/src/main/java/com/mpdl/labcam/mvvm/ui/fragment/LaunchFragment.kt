@@ -73,7 +73,7 @@ class LaunchFragment: BaseFragment<LaunchViewModel>() {
                                 .navigate(LaunchFragmentDirections.actionLaunchFragmentToCameraFragment())
                         }
                     }
-                },1800)
+                },2500)
             }
     }
 

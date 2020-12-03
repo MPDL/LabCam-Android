@@ -16,7 +16,9 @@
 
 package com.mpdl.labcam.mvvm.ui.fragment
 
+import android.net.Uri
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,23 +32,26 @@ import java.io.File
 /** Fragment used for each individual page showing a photo inside of [GalleryFragment] */
 class PhotoFragment internal constructor() : Fragment() {
 
+    private var uri:Uri?= null
+
+    fun setUri(uri:Uri): PhotoFragment {
+        this.uri = uri
+        return this
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?) = ImageView(context)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val args = arguments ?: return
-        val resource = args.getString(FILE_NAME_KEY)?.let { File(it) } ?: R.drawable.ic_photo
-        Glide.with(view).load(resource).into(view as ImageView)
-    }
-
-    companion object {
-        private const val FILE_NAME_KEY = "file_name"
-
-        fun create(image: File) = PhotoFragment().apply {
-            arguments = Bundle().apply {
-                putString(FILE_NAME_KEY, image.absolutePath)
-            }
+        if (uri != null){
+            Glide.with(view)
+                .load(uri)
+                .override(view.width,view.height)
+                .into(view as ImageView)
+        }else{
+            Glide.with(view).load(R.drawable.ic_photo).into(view as ImageView)
         }
+
     }
 }

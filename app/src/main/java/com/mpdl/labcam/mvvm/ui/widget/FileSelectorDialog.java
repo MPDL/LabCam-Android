@@ -64,17 +64,9 @@ public class FileSelectorDialog extends AlertDialog {
                     dismiss();
                     return;
                 }
-                if ("/".equals(saveDirectoryBean.getPath())){
-                    saveDirectoryBean = null;
-                    tvTitle.setText("Keeper");
-                }else {
-                    String path = saveDirectoryBean.getPath();
-                    path = path.substring(0,path.lastIndexOf("/"));
-                    path = path.substring(0,path.lastIndexOf("/")+1);
-                    saveDirectoryBean.setPath(path);
-                }
-
+                updateDir(true,null);
                 if (fileSelectorListener != null){
+                    progressbar.setVisibility(View.VISIBLE);
                     fileSelectorListener.onBack(saveDirectoryBean);
                 }
             }
@@ -88,18 +80,7 @@ public class FileSelectorDialog extends AlertDialog {
 
         mAdapter.setOnItemClickListener((view12, viewType, data, position) -> {
             if (data != null){
-                if ("repo".equals(data.getType())){
-                    if (saveDirectoryBean == null){
-                        saveDirectoryBean = new SaveDirectoryBean(data.getId(),data.getName(),"/");
-                    }
-                }else {
-                    if (saveDirectoryBean == null){
-                        saveDirectoryBean = new SaveDirectoryBean(data.getId(),data.getName(),"/");
-                    }else {
-                        String path = saveDirectoryBean.getPath()+data.getName()+"/";
-                        saveDirectoryBean.setPath(path);
-                    }
-                }
+                updateDir(false,data);
             }
             if (fileSelectorListener != null){
                 progressbar.setVisibility(View.VISIBLE);
@@ -109,11 +90,39 @@ public class FileSelectorDialog extends AlertDialog {
         setView(view);
     }
 
+    private void updateDir(boolean isBack, KeeperDirectoryBean data){
+        if (isBack){
+            if (saveDirectoryBean == null || "/".equals(saveDirectoryBean.getPath())){
+                saveDirectoryBean = null;
+                tvTitle.setText(R.string.keeper);
+            }else {
+                String path = saveDirectoryBean.getPath();
+                path = path.substring(0,path.lastIndexOf("/"));
+                path = path.substring(0,path.lastIndexOf("/")+1);
+                saveDirectoryBean.setPath(path);
+            }
+        }else {
+            if ("repo".equals(data.getType())){
+                if (saveDirectoryBean == null){
+                    saveDirectoryBean = new SaveDirectoryBean(data.getId(),data.getName(),"/");
+                }
+            }else {
+                if (saveDirectoryBean == null){
+                    saveDirectoryBean = new SaveDirectoryBean(data.getId(),data.getName(),"/");
+                }else {
+                    String path = saveDirectoryBean.getPath()+data.getName()+"/";
+                    saveDirectoryBean.setPath(path);
+                }
+            }
+        }
+    }
+
     @Override
     public void show() {
         saveDirectoryBean = null;
         tvTitle.setText("Keeper");
         if (fileSelectorListener != null){
+            progressbar.setVisibility(View.VISIBLE);
             fileSelectorListener.onItemClick(null);
         }
         super.show();
@@ -124,20 +133,38 @@ public class FileSelectorDialog extends AlertDialog {
         lp.width = (int) (window.getWindowManager().getDefaultDisplay().getWidth()*0.85);
         lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
         getWindow().setAttributes(lp);
-
     }
 
     public void setData(List<KeeperDirectoryBean> data) {
         if (progressbar != null){
             progressbar.setVisibility(View.GONE);
         }
-        if (data == null)return;
+        if (data == null){
+            updateDir(true,null);
+            return;
+        }
         if (saveDirectoryBean != null){
             tvTitle.setText(saveDirectoryBean.getRepoName()+saveDirectoryBean.getPath());
         }
+
         mData.clear();
-        mData.addAll(data);
+        mData.addAll(filterData(data));
         mAdapter.notifyDataSetChanged();
+    }
+
+    /**
+     * 过滤出有权限的目录
+     * @param data
+     * @return
+     */
+    private List<KeeperDirectoryBean> filterData(List<KeeperDirectoryBean> data){
+        List<KeeperDirectoryBean> filterData = new ArrayList<>();
+        for (KeeperDirectoryBean bean: data){
+            if ("rw".equals(bean.getPermission())){
+                filterData.add(bean);
+            }
+        }
+        return filterData;
     }
 
     public void setFileSelectorListener(FileSelectorListener listener){

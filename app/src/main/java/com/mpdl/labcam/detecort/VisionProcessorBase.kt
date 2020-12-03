@@ -31,6 +31,7 @@ import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.TaskExecutors
 import com.google.mlkit.vision.common.InputImage
 import com.mpdl.labcam.mvvm.ui.widget.GraphicOverlay
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.Timer
 import java.util.TimerTask
@@ -92,12 +93,13 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
   }
 
   // -----------------Code for processing single still image----------------------------------------
-  override fun processBitmap(bitmap: Bitmap?, graphicOverlay: GraphicOverlay) {
+  override fun processBitmap(bitmap: Bitmap?, fileName:String?, graphicOverlay: GraphicOverlay) {
     requestDetectInImage(
       InputImage.fromBitmap(bitmap!!, 0),
       graphicOverlay, /* originalCameraImage= */
       null, /* shouldShowFps= */
-      false
+      false,
+      fileName
     )
   }
 
@@ -144,7 +146,8 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
       ),
       graphicOverlay,
       bitmap, /* shouldShowFps= */
-      true
+      true,
+      null
     )
       .addOnSuccessListener {
         processLatestImage(graphicOverlay)
@@ -164,7 +167,8 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
       InputImage.fromMediaImage(image.image!!, image.imageInfo.rotationDegrees),
       graphicOverlay, /* originalCameraImage= */
       bitmap, /* shouldShowFps= */
-      true
+      true,
+      null
     )
       // When the image is from CameraX analysis use case, must call image.close() on received
       // images when finished using them. Otherwise, new images may not be received or the camera
@@ -177,7 +181,8 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
     image: InputImage,
     graphicOverlay: GraphicOverlay,
     originalCameraImage: Bitmap?,
-    shouldShowFps: Boolean
+    shouldShowFps: Boolean,
+    file: String?
   ): Task<T> {
     val startMs = SystemClock.elapsedRealtime()
     return detectInImage(image)
@@ -222,25 +227,30 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
           if (shouldShowFps) framesPerSecond else null
         )
       )
-      this@VisionProcessorBase.onSuccess(results, graphicOverlay)
+      this@VisionProcessorBase.onSuccess(results, file, graphicOverlay)
       graphicOverlay.postInvalidate()
     }
 //      .addOnFailureListener(executor)
       .addOnFailureListener{ e: Exception ->
         graphicOverlay.clear()
         graphicOverlay.postInvalidate()
-        Toast.makeText(
-          graphicOverlay.context,
+
+        toastMsg(graphicOverlay.context,
           "Failed to process.\nError: " +
-            e.localizedMessage +
-            "\nCause: " +
-            e.cause,
-          Toast.LENGTH_LONG
-        )
-          .show()
+                  e.localizedMessage +
+                  "\nCause: " +
+                  e.cause)
         e.printStackTrace()
         this@VisionProcessorBase.onFailure(e)
       }
+  }
+
+  private var toastTime: Long = 0
+  private fun toastMsg(context: Context,msg:String){
+    if (System.currentTimeMillis() - toastTime > 2000){
+      toastTime = System.currentTimeMillis()
+      Toast.makeText(context,msg, Toast.LENGTH_SHORT).show()
+    }
   }
 
   override fun stop() {
@@ -253,7 +263,7 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
 
   protected abstract fun detectInImage(image: InputImage): Task<T>
 
-  protected abstract fun onSuccess(results: T, graphicOverlay: GraphicOverlay)
+  protected abstract fun onSuccess(results: T,fileName: String?, graphicOverlay: GraphicOverlay)
 
   protected abstract fun onFailure(e: Exception)
 }

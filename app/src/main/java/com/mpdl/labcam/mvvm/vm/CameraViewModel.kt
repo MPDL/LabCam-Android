@@ -26,11 +26,12 @@ class CameraViewModel(application: Application,
     fun getRepos(){
         apply(object : ResultCallBack<List<KeeperDirectoryBean>>{
             override suspend fun callBack(): BaseResult<List<KeeperDirectoryBean>>
-                    = mRepository.getRepos("mine")
+                    = mRepository.getRepos()
         },{
             directoryData.postValue(it)
         },{
-            directoryData.postValue(null)
+//            directoryData.postValue(null)
+            cameraUiState.postValue(CameraUiState(showToastMsg = "get dir fail",getDirError = true))
         })
     }
     fun getDir(saveDirectoryBean: SaveDirectoryBean){
@@ -40,7 +41,8 @@ class CameraViewModel(application: Application,
         },{
             directoryData.postValue(it)
         },{
-            directoryData.postValue(null)
+//            directoryData.postValue(null)
+            cameraUiState.postValue(CameraUiState(showToastMsg = "get dir fail",getDirError = true))
         })
     }
 
@@ -71,6 +73,7 @@ class CameraViewModel(application: Application,
             Timber.d("uploadUrl: $it")
             if (!TextUtils.isEmpty(it)){
                 MainActivity.setUploadUrl(it)
+                MainActivity.startUpload()
                 cameraUiState.postValue(CameraUiState(uploadUrlSuc = true))
             }else{
                 cameraUiState.postValue(CameraUiState(showToastMsg = "get upload link fail"))
@@ -83,6 +86,5 @@ class CameraViewModel(application: Application,
     fun cleanUiState(){
         cameraUiState.postValue(CameraUiState())
     }
-
 
 }

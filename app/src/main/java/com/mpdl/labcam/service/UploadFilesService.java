@@ -14,6 +14,7 @@ import org.reactivestreams.Subscription;
 import org.simple.eventbus.EventBus;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +42,7 @@ public class UploadFilesService extends Service {
     protected CompositeDisposable mCompositeDisposable;
     private Subscription mFileSubscription;
     private ThreadPoolExecutor mVideoExecutor;
-    private boolean videoStart;
+    private boolean uploadStart;
     private List<String> uploadingNameList = new ArrayList<>();
     @Nullable
     @Override
@@ -59,11 +60,11 @@ public class UploadFilesService extends Service {
         if (TextUtils.isEmpty(MainActivity.Companion.getUploadUrl())){
             return;
         }
-        if (videoStart){
+        if (uploadStart){
             return;
         }
         Timber.d("startUploadFile");
-        videoStart = true;
+        uploadStart = true;
         File fileDir = MainActivity.Companion.getOutputDirectory(this);
         Timber.d("fileDir: "+ Arrays.toString(fileDir.list()));
         Flowable.fromArray(fileDir.listFiles())
@@ -78,7 +79,9 @@ public class UploadFilesService extends Service {
 
                     @Override
                     public void onNext(File file) {
-                        mVideoExecutor.execute(new UploadFileRunnable(file));
+                        if (!uploadingNameList.contains(file.getName())){
+                            mVideoExecutor.execute(new UploadFileRunnable(file));
+                        }
                     }
 
                     @Override
@@ -88,15 +91,19 @@ public class UploadFilesService extends Service {
 
                     @Override
                     public void onComplete() {
-                        Timber.i("onComplete 上传完成：");
-                        videoStart = false;
+                        uploadStart = false;
+                        if (fileDir.listFiles().length == 0){
+                            Timber.i("onComplete 上传完成：");
+                        }else {
+                            MainActivity.Companion.startUpload();
+                        }
                     }
                 });
 
     }
 
     public void stopUploadFile(){
-        videoStart = false;
+        uploadStart = false;
         if (mFileSubscription != null){
             mFileSubscription.cancel();
         }
@@ -128,6 +135,19 @@ public class UploadFilesService extends Service {
         }
     }
 
+    private String openText(String path) {
+        String readStr = "";
+        try {
+            FileInputStream fis = new FileInputStream(path);
+            byte[] b = new byte[fis.available()];
+            fis.read(b);
+            readStr = new String(b);
+            fis.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return readStr;
+    }
 
     class UploadFileRunnable implements Runnable{
         private File file;
@@ -138,7 +158,13 @@ public class UploadFilesService extends Service {
         public void run() {
             if (file != null){
                 try {
-                    Timber.i("上传 videoFile: "+file.getAbsolutePath());
+                    if (file.getName().matches(".*\\.md")){
+                        if (TextUtils.isEmpty(openText(file.getPath()))){
+                            return;
+                        }
+                    }
+
+                    Timber.i("上传 File: "+file.getAbsolutePath());
                     uploadingNameList.add(file.getName());
 
                     MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(),
@@ -150,6 +176,10 @@ public class UploadFilesService extends Service {
                         path = saveDir.getPath();
                     }
                     try {
+                        if ("".equals(MainActivity.Companion.getUploadUrl())){
+                            stopUploadFile();
+                            return;
+                        }
                         MainActivity.Companion.getRetrofit()
                                 .create(UploadApi.class)
                                 .uploadFile(MainActivity.Companion.getUploadUrl(),
@@ -184,8 +214,6 @@ public class UploadFilesService extends Service {
                     }
 
                 } catch (Exception e) {
-                    //TODO ClientException 本地异常，如网络异常等 ，视频上传失败
-                    //TODO ServiceException 服务异常 视频上传失败
                     uploadingNameList.remove(file.getName());
                     e.printStackTrace();
                     Timber.i("上传失败："+e.getMessage());

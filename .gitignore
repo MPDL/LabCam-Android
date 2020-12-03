@@ -13,3 +13,4 @@
 .externalNativeBuild
 /labcam_config.gradle
 /apks/output.json
+/app/google-services.json

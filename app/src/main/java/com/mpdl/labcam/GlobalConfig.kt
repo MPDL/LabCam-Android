@@ -2,7 +2,9 @@ package com.mpdl.labcam
 
 import android.app.Application
 import com.mpdl.mvvm.globalsetting.IGlobalConfig
+import okhttp3.Cache
 import okhttp3.OkHttpClient
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 class GlobalConfig: IGlobalConfig{
@@ -19,6 +21,9 @@ class GlobalConfig: IGlobalConfig{
             .writeTimeout(3000,TimeUnit.MILLISECONDS)
             .connectTimeout(3000,TimeUnit.MILLISECONDS)
             .readTimeout(3000,TimeUnit.MILLISECONDS)
+            .addInterceptor(CacheInterceptor())
+            .addNetworkInterceptor(CacheInterceptor())
+            .cache(Cache(File(application.filesDir,"labCamCache"),10 * 1024 * 1024))
     }
 
 }

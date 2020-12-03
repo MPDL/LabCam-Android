@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">LabCam</string>
     <string name="login_fail">Incorrect email or password</string>
+    <string name="create_account">Create Account</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="btn_login">LOGIN</string>
+    <string name="et_hint_password">password</string>
+    <string name="et_hint_username">Username</string>
+    <string name="keeper">KEEPER</string>
 </resources>

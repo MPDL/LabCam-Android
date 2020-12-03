@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#006F7B</color>
-    <color name="colorPrimaryDark">#006F7B</color>
+    <color name="colorPrimary">#566069</color>
+    <color name="colorPrimaryDark">#566069</color>
     <color name="colorAccent">#5AC9CB</color>
 
     <color name="color5AC9CB">#5AC9CB</color>
@@ -12,4 +12,6 @@
     <color name="icFocused">#DDFFFFFF</color>
     <color name="icPressed">#AAFFFFFF</color>
     <color name="color51">#515151</color>
+    <color name="colorABC4C0">#ABC4C0</color>
+
 </resources>
