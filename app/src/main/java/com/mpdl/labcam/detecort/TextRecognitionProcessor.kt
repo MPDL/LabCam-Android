@@ -17,13 +17,19 @@
 package com.mpdl.labcam.detecort
 
 import android.content.Context
+import android.provider.Settings
+import android.text.TextUtils
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
+import com.mpdl.labcam.mvvm.ui.activity.MainActivity
 import com.mpdl.labcam.mvvm.ui.widget.GraphicOverlay
+import java.io.File
+import java.io.FileOutputStream
+
 
 /** Processor for the text detector demo.  */
 class TextRecognitionProcessor(context: Context) : VisionProcessorBase<Text>(context) {
@@ -38,8 +44,19 @@ class TextRecognitionProcessor(context: Context) : VisionProcessorBase<Text>(con
     return textRecognizer.process(image)
   }
 
-  override fun onSuccess(text: Text, graphicOverlay: GraphicOverlay) {
+  override fun onSuccess(text: Text, fileName: String?, graphicOverlay: GraphicOverlay) {
     Log.d(TAG, "On-device Text detection successful")
+    //保存text 到本地
+    try {
+      fileName?.let {
+        if (!TextUtils.isEmpty(text.text)){
+          MainActivity.createText(MainActivity.getOutputDirectory(graphicOverlay.context),it)
+            .writeText(text.text)
+        }
+      }
+    } catch (e: Exception) {
+      e.printStackTrace()
+    }
     logExtrasForTesting(text)
     graphicOverlay.add(TextGraphic(graphicOverlay, text))
   }

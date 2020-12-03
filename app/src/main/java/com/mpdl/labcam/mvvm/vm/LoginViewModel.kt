@@ -65,7 +65,7 @@ class LoginViewModel(application: Application,
     fun getRepos(){
         apply(object : ResultCallBack<List<KeeperDirectoryBean>>{
             override suspend fun callBack(): BaseResult<List<KeeperDirectoryBean>>
-                    = mRepository.getRepos("mine")
+                    = mRepository.getRepos()
         },{
             directoryData.postValue(it)
         },{

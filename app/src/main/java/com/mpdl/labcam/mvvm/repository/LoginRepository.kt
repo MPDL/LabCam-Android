@@ -18,10 +18,10 @@ class LoginRepository(repositoryManager: IRepositoryManager):
         })
     }
 
-    suspend fun getRepos(type:String): BaseResult<List<KeeperDirectoryBean>>{
+    suspend fun getRepos(): BaseResult<List<KeeperDirectoryBean>>{
         return safeApiResponse(call = {
             MainActivity.getRetrofit()!!.create(LabCamApi::class.java)
-                .getRepos(type)
+                .getRepos()
         },retry = 2)
     }
 

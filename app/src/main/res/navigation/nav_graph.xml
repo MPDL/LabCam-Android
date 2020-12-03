@@ -45,9 +45,6 @@
             android:id="@+id/galleryFragment"
             android:name="com.mpdl.labcam.mvvm.ui.fragment.GalleryFragment"
             android:label="GalleryFragment" >
-        <argument
-                android:name="root_directory"
-                app:argType="string" />
     </fragment>
 
     <fragment

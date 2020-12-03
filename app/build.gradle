@@ -12,8 +12,8 @@ android {
         applicationId "de.mpg.mpdl.labcam"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 100
-        versionName "1.0.0"
+        versionCode 101
+        versionName "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -118,20 +118,17 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:$camerax_version"
     implementation "androidx.camera:camera-view:1.0.0-alpha18"
 
-    // Text features
-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:16.1.1'
-
     //bugly
     //其中latest.release指代最新Bugly SDK版本号，也可以指定明确的版本号，例如2.1.9
     implementation 'com.tencent.bugly:nativecrashreport:latest.release'
     //其中latest.release指代最新Bugly NDK版本号，也可以指定明确的版本号，例如3.0
     implementation 'com.tencent.bugly:crashreport_upgrade:latest.release'
 
-
 //    implementation 'com.google.firebase:firebase-ml-vision:24.0.3'
 
+    // Text features
+//    implementation 'com.google.firebase:firebase-ml-vision:24.0.3'
     implementation 'com.google.android.gms:play-services-mlkit-text-recognition:16.1.1'
-
 
     implementation project(path: ':mvvm')
 }

@@ -17,7 +17,9 @@
 package com.mpdl.labcam.mvvm.ui.fragment
 
 import android.app.ProgressDialog
+import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.net.Uri
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.*
@@ -163,15 +165,17 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
         }
 
         btn_register.setOnClickListener {
-            Navigation.findNavController(requireView())
-                .navigate(LoginFragmentDirections
-                    .actionLoginFragmentToWebViewFragment("${et_url.text.toString().trim()}/accounts/register/"))
+            goWebView("${et_url.text.toString().trim()}/accounts/register/")
+//            Navigation.findNavController(requireView())
+//                .navigate(LoginFragmentDirections
+//                    .actionLoginFragmentToWebViewFragment("${et_url.text.toString().trim()}/accounts/register/"))
         }
 
         btn_forgot.setOnClickListener {
-            Navigation.findNavController(requireView())
-                .navigate(LoginFragmentDirections
-                    .actionLoginFragmentToWebViewFragment("${et_url.text.toString().trim()}/accounts/password/reset/"))
+            goWebView("${et_url.text.toString().trim()}/accounts/password/reset/")
+//            Navigation.findNavController(requireView())
+//                .navigate(LoginFragmentDirections
+//                    .actionLoginFragmentToWebViewFragment("${et_url.text.toString().trim()}/accounts/password/reset/"))
         }
 
         tv_spinner.setOnClickListener {
@@ -185,6 +189,12 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
         et_password.addTextChangedListener {
             loginVisible()
         }
+    }
+
+    private fun goWebView(url:String){
+        val uri: Uri = Uri.parse(url)
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        startActivity(intent)
     }
 
     private fun loginVisible(){
