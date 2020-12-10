@@ -5,6 +5,7 @@ import android.app.ProgressDialog
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
+import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -24,23 +25,23 @@ import androidx.core.net.toFile
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.Navigation
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.google.mlkit.common.MlKitException
 import com.mpdl.labcam.R
 import com.mpdl.labcam.detecort.TextRecognitionProcessor
 import com.mpdl.labcam.detecort.VisionImageProcessor
-import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean
+import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
-import com.mpdl.labcam.mvvm.ui.widget.CustomPopupWindow
-import com.mpdl.labcam.mvvm.ui.widget.CustomPreviewView
-import com.mpdl.labcam.mvvm.ui.widget.FileSelectorDialog
-import com.mpdl.labcam.mvvm.ui.widget.GraphicOverlay
+import com.mpdl.labcam.mvvm.ui.widget.*
 import com.mpdl.labcam.mvvm.vm.CameraViewModel
+import com.mpdl.labcam.treeviewbase.TreeNode
 import com.mpdl.mvvm.base.BaseFragment
 import com.mpdl.mvvm.common.Preference
 import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import me.jessyan.autosize.utils.AutoSizeUtils
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 import org.simple.eventbus.EventBus
 import org.simple.eventbus.Subscriber
@@ -82,7 +83,9 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     private var firstInit = true
 
 
-    private var fileSelectorDialog:FileSelectorDialog? = null
+    private var dirTreeViewPopup: DirTreeViewPopup? = null
+//    private var curTreeNode: TreeNode<KeeperDirItem>? = null
+
 
     /**
      * We need a display listener for orientation changes that do not trigger a configuration
@@ -125,7 +128,7 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         displayManager.registerDisplayListener(displayListener, null)
         outputDirectory = MainActivity.getOutputDirectory(requireContext())
 
-        initFileSelectorDialog()
+        initDirTreeViewPopup()
 
         setOcrStatus()
 
@@ -144,17 +147,26 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             setGalleryThumbnail(MainActivity.galleryList[0])
         }
 
-        observe(mViewModel.getDirectoryData()){list->
-            Timber.d("getDirectoryData observe: $list")
-            fileSelectorDialog?.let {
-                it.setData(list)
+
+        observe(mViewModel.getDirDialogState()){state->
+            state?.let{
+                dirTreeViewPopup?.let {
+                    if (dirTreeViewPopup?.curTreeNode == null){
+                        it.setData(state.node, state.list)
+                    }else{
+                        val curItem = dirTreeViewPopup?.curTreeNode as TreeNode<KeeperDirItem>
+                        if (curItem.content?.id == state.node?.content?.id){
+                            it.setData(curItem, state.list)
+                        }
+                    }
+                }
             }
         }
 
         observe(mViewModel.getUiState()){
             if (it.uploadUrlSuc){
-                fileSelectorDialog?.let {dialog->
-                    MainActivity.getSaveDirectory()?.let{saveDir->
+                dirTreeViewPopup?.let {dialog->
+                    MainActivity.getCurDirItem()?.let{saveDir->
                         tvDir?.text = saveDir.repoName+saveDir.path
                     }
                     dialog.dismiss()
@@ -162,18 +174,13 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             }
 
             if (it.checkoutDirPathSuc){
-                MainActivity.getSaveDirectory()?.let {saveDir->
-                    showMessage("upload path: "+saveDir.repoName+saveDir.path)
+                MainActivity.getCurDirItem()?.let {saveDir->
                     MainActivity.startUpload()
                 }
             }
 
             if (it.showFileDirDialog){
-                fileSelectorDialog?.show()
-            }
-
-            if (it.getDirError){
-                fileSelectorDialog?.setData(null)
+                showChangeDir()
             }
         }
 
@@ -208,7 +215,7 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         }
 
         btn_menu.setOnClickListener {
-            showPopup()
+            showSetPopup()
         }
 
         btn_ocr.setOnClickListener {
@@ -408,12 +415,13 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                         setGalleryThumbnail(savedUri)
 
                         lifecycleScope.launch(Dispatchers.IO) {
-                            var bitmap = BitmapFactory.decodeFile(savedUri.toFile().absolutePath)
-
-                            if (MainActivity.openOcr){
-                                imageProcessor!!.processBitmap(bitmap,savedUri.toFile().name ,graphicOverlay)
+                            var bitmap:Bitmap? = BitmapFactory.decodeFile(savedUri.toFile().absolutePath)
+                            bitmap?.let {
+                                if (MainActivity.openOcr){
+                                    imageProcessor!!.processBitmap(it,savedUri.toFile().name ,graphicOverlay)
+                                }
+                                saveBitmap(requireContext(),it)
                             }
-                            saveBitmap(requireContext(),bitmap)
                         }
                         Timber.d( "Photo capture succeeded: $savedUri")
                         MainActivity.startUpload()
@@ -463,9 +471,8 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         btn_photo_view.post {
             Glide.with(this)
                 .load(uri)
-                    .override(btn_photo_view.width,btn_photo_view.height)
-//                    .fitCenter()
-                .apply(RequestOptions.circleCropTransform())
+                .override(btn_photo_view.width,btn_photo_view.height)
+                .apply(RequestOptions.bitmapTransform(RoundedCorners(AutoSizeUtils.dp2px(requireContext(),8f))))
                 .into(btn_photo_view)
         }
     }
@@ -473,9 +480,9 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     private fun setOcrStatus() {
         Timber.d("openOcr: ${MainActivity.openOcr}")
         if (MainActivity.openOcr){
-            btn_ocr.setTextColor(resources.getColor(R.color.colorWhite))
+            iv_ocr.setImageResource(R.mipmap.ic_ocr_on)
         }else{
-            btn_ocr.setTextColor(resources.getColor(R.color.color51))
+            iv_ocr.setImageResource(R.mipmap.ic_ocr_off)
         }
         try {
             bindAnalysisUseCase()
@@ -503,13 +510,13 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     private fun setFlashBtn(){
         when(flashMode){
             ImageCapture.FLASH_MODE_AUTO -> {
-                btn_flash.setImageResource(R.mipmap.flash_auto)
+                iv_flash.setImageResource(R.mipmap.ic_flash_a)
             }
             ImageCapture.FLASH_MODE_ON -> {
-                btn_flash.setImageResource(R.mipmap.flash_on)
+                iv_flash.setImageResource(R.mipmap.ic_flash_on)
             }
             ImageCapture.FLASH_MODE_OFF -> {
-                btn_flash.setImageResource(R.mipmap.flash_off)
+                iv_flash.setImageResource(R.mipmap.ic_flash_off)
             }
         }
     }
@@ -519,71 +526,80 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             MainActivity.isCheckDirPath = true
             //没有网络
             if (MainActivity.curNetworkType == -1){
-                MainActivity.getSaveDirectory()?.let{
+                MainActivity.getCurDirItem()?.let{
                     showMessage("upload path: "+it.repoName+it.path)
                 }
                 return
             }
-            val saveDirectoryBean =MainActivity.getSaveDirectory()
-            if (saveDirectoryBean == null){
-                fileSelectorDialog?.show()
+            val curDirItem =MainActivity.getCurDirItem()
+            if (curDirItem != null){
+                mViewModel.checkDirPath(curDirItem)
             }else{
-                mViewModel.checkDirPath(saveDirectoryBean)
+                if (dirTreeViewPopup != null){
+                    dirTreeViewPopup?.show()
+                }
             }
         }
     }
 
 
-    private fun initFileSelectorDialog(){
-        fileSelectorDialog = FileSelectorDialog(requireContext())
-        fileSelectorDialog!!.setCanceledOnTouchOutside(false)
-        fileSelectorDialog!!.setFileSelectorListener(object : FileSelectorDialog.FileSelectorListener {
-            override fun onBack(bean: SaveDirectoryBean?) {
-                getDir(bean)
-            }
-
-            override fun onSave(bean: SaveDirectoryBean?) {
-                if (bean == null){
-                    showMessage("Please select a directory")
-                }else{
-                    MainActivity.setSaveDirectory(bean)
-                    if (MainActivity.isNetworkConnected()){
-                        MainActivity.setUploadUrl("")
-                        mViewModel.getUploadLink(bean)
+    private fun initDirTreeViewPopup(){
+        dirTreeViewPopup = DirTreeViewPopup.builder(requireContext())
+            .build()
+            .setDirTreeViewListener(object : DirTreeViewPopup.DirTreeViewListener {
+                override fun onConfirm(item: KeeperDirItem?) {
+                    if (item == null){
+                        showMessage("Please select a directory")
                     }else{
-                        tvDir?.text = bean.repoName+bean.path
-                        fileSelectorDialog?.dismiss()
+                        if (MainActivity.isNetworkConnected()){
+                            mViewModel.getUploadLink(item)
+                        }else{
+                            dirTreeViewPopup?.dismiss()
+                        }
                     }
                 }
-            }
 
-            override fun onItemClick(bean: SaveDirectoryBean?) {
-                getDir(bean)
-            }
-        })
+                override fun onItemClick(node: TreeNode<*>?) {
+                    if (dirTreeViewPopup?.curTreeNode == null){
+                        getDir(null)
+                    }
+                    dirTreeViewPopup?.curTreeNode?.let {
+                        if (it.isLeaf){
+                            getDir(dirTreeViewPopup?.curTreeNode as TreeNode<KeeperDirItem>?)
+                        }
+                    }
+                }
+            })
+    }
+
+    private fun getDir(node: TreeNode<KeeperDirItem>?){
+        if (node == null){
+            mViewModel.getRepos()
+        }else {
+            mViewModel.getDir(node = node, dirItem = node.content)
+        }
     }
 
 
-    private fun showPopup(){
+    private fun showSetPopup(){
         if (setPopup == null){
             setPopup = CustomPopupWindow
                 .builder()
                 .contentView(CustomPopupWindow.inflateView(requireActivity(),R.layout.popup_set))
                 .customListener {
-                    tvDir = it.findViewById<TextView>(R.id.tv_dir)
+                    tvDir = it.findViewById(R.id.tv_dir)
                     val tvNetwork = it.findViewById<TextView>(R.id.tv_network)
                     val spNetwork = it.findViewById<Spinner>(R.id.sp_network)
 
-                    MainActivity.getSaveDirectory()?.let{saveDir->
+                    MainActivity.getCurDirItem()?.let{saveDir->
                         tvDir!!.text = saveDir.repoName+saveDir.path
                     }
                     tvDir!!.setOnClickListener {
-                        fileSelectorDialog!!.show()
+                        dirTreeViewPopup!!.show()
                     }
-                    tvNetwork.text = resources.getStringArray(R.array.upload_network)[MainActivity.getUploadNetwork()]
 
                     it.findViewById<ImageView>(R.id.iv_dir).setOnClickListener {
-                        fileSelectorDialog!!.show()
+                        dirTreeViewPopup!!.show()
                     }
 
                     tvNetwork.setOnClickListener {
@@ -595,14 +611,7 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                     }
 
                     it.findViewById<TextView>(R.id.btn_logout).setOnClickListener {
-                        setPopup!!.dismiss()
-                        MainActivity.loginOut()
-                        Navigation.findNavController(requireView())
-                            .navigate(CameraFragmentDirections.actionCameraFragmentToLoginFragment())
-                    }
-
-                    it.findViewById<LinearLayout>(R.id.btn_dismiss).setOnClickListener {
-                        setPopup!!.dismiss()
+                        showLogoutDialog()
                     }
 
 
@@ -615,22 +624,45 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                             tvNetwork.text = resources.getStringArray(R.array.upload_network)[position]
                         }
                     }
-
+                    spNetwork.setSelection(MainActivity.getUploadNetwork())
                 }.build()
-            setPopup!!.animationStyle = R.style.popwindow_anim_style
+//            setPopup!!.animationStyle = R.style.popwindow_anim_style
             setPopup!!.height = WindowManager.LayoutParams.WRAP_CONTENT
         }
         setPopup!!.showAtLocation(requireView(), Gravity.TOP, 0, 0);
         //AutoSizeUtils.dp2px(requireContext(),21f)
     }
 
-    private fun getDir(bean: SaveDirectoryBean?){
-        if (bean == null){
-            mViewModel.getRepos()
-        }else {
-            mViewModel.getDir(bean)
-        }
+    private fun showLogoutDialog(){
+        TipsDialog
+            .TipsBuilder(requireContext())
+            .setTitle("Logout")
+            .setMessage("Are you sure to logout？")
+            .setNegativeButton("CANCEL",null)
+            .setPositiveButton("LOGOUT") { dialog, p1 ->
+                setPopup?.dismiss()
+                dialog?.dismiss()
+                MainActivity.loginOut()
+                Navigation.findNavController(requireView())
+                    .navigate(CameraFragmentDirections.actionCameraFragmentToLoginFragment())
+            }
+            .setCancelable(false)
+            .show()
     }
+
+    private fun showChangeDir(){
+        TipsDialog
+            .TipsBuilder(requireContext())
+            .setTitle("Upload not successful")
+            .setMessage("Couldn’t find selected for folder,please choose another one")
+            .setPositiveButton("CHANGE") { dialog, p1 ->
+                dialog?.dismiss()
+                dirTreeViewPopup?.show()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
 
 
     /** Enabled or disabled a button to switch cameras depending on the available cameras */
@@ -693,12 +725,17 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         progressDialog?.dismiss()
     }
 
+    override fun onResume() {
+        super.onResume()
+        MainActivity.startUpload()
+    }
+
     @Subscriber(tag = MainActivity.EVENT_UPLOAD_OVER)
     fun uploadOver(msg:String){
         Timber.d("单张图片上传 完成通知")
-        if (outputDirectory.listFiles().isEmpty()){
+//        if (outputDirectory.listFiles().isEmpty()){
 //            btn_photo_view.setImageResource(R.drawable.ic_photo)
-        }
+//        }
     }
 
     companion object {

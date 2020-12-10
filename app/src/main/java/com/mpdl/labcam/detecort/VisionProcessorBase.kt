@@ -220,13 +220,13 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
           )
         )
       }
-      graphicOverlay.add(
+      /*graphicOverlay.add(
         InferenceInfoGraphic(
           graphicOverlay,
           currentLatencyMs.toDouble(),
           if (shouldShowFps) framesPerSecond else null
         )
-      )
+      )*/
       this@VisionProcessorBase.onSuccess(results, file, graphicOverlay)
       graphicOverlay.postInvalidate()
     }

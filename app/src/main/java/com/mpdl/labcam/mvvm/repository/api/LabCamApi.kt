@@ -1,5 +1,6 @@
 package com.mpdl.labcam.mvvm.repository.api
 
+import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirectoryBean
 import com.mpdl.labcam.mvvm.repository.bean.LoginResponse
 import okhttp3.MultipartBody
@@ -17,14 +18,15 @@ interface LabCamApi {
 
     @Headers("Cache-Control: public, max-age=" + 7*24*3600)
     @GET("api2/repos/")
-    suspend fun getRepos():Response<List<KeeperDirectoryBean>>
+    suspend fun getRepos():Response<List<KeeperDirItem>>
 
     @Headers("Cache-Control: public, max-age=" + 7*24*3600)
     @GET("api2/repos/{repoId}/dir/")
     suspend fun getDir(
         @Path("repoId") repoId:String,
         @Query("p") path:String,
-        @Query("t") t:String):Response<List<KeeperDirectoryBean>>
+        @Query("t") t:String):Response<List<KeeperDirItem>>
+
 
 
     @GET("/api2/repos/{repoId}/upload-link/")

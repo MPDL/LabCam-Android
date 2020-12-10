@@ -23,6 +23,7 @@ import android.graphics.RectF
 import android.util.Log
 import com.google.mlkit.vision.text.Text
 import com.mpdl.labcam.mvvm.ui.widget.GraphicOverlay
+import timber.log.Timber
 import java.util.Arrays
 import kotlin.math.max
 import kotlin.math.min
@@ -54,27 +55,15 @@ class TextGraphic constructor(overlay: GraphicOverlay?, private val text: Text) 
 
   /** Draws the text block annotations for position, size, and raw value on the supplied canvas.  */
   override fun draw(canvas: Canvas) {
-    Log.d(TAG, "Text is: " + text.text)
+    Timber.d("Text is: " + text.text)
     for (textBlock in text.textBlocks) { // Renders the text at the bottom of the box.
-      Log.d(TAG, "TextBlock text is: " + textBlock.text)
-      Log.d(
-        TAG,
-        "TextBlock boundingbox is: " + textBlock.boundingBox
-      )
-      Log.d(
-        TAG,
-        "TextBlock cornerpoint is: " + Arrays.toString(textBlock.cornerPoints)
-      )
+      Timber.d("TextBlock text is: " + textBlock.text)
+      Timber.d("TextBlock boundingbox is: " + textBlock.boundingBox)
+      Timber.d("TextBlock cornerpoint is: " + Arrays.toString(textBlock.cornerPoints))
       for (line in textBlock.lines) {
-        Log.d(TAG, "Line text is: " + line.text)
-        Log.d(
-          TAG,
-          "Line boundingbox is: " + line.boundingBox
-        )
-        Log.d(
-          TAG,
-          "Line cornerpoint is: " + Arrays.toString(line.cornerPoints)
-        )
+        Timber.d("Line text is: " + line.text)
+        Timber.d("Line boundingbox is: " + line.boundingBox)
+        Timber.d("Line cornerpoint is: " + Arrays.toString(line.cornerPoints))
         // Draws the bounding box around the TextBlock.
         val rect = RectF(line.boundingBox)
         // If the image is flipped, the left will be translated to right, and the right to left.
@@ -103,29 +92,19 @@ class TextGraphic constructor(overlay: GraphicOverlay?, private val text: Text) 
           textPaint
         )
         for (element in line.elements) {
-          Log.d(TAG, "Element text is: " + element.text)
-          Log.d(
-            TAG,
-            "Element boundingbox is: " + element.boundingBox
-          )
-          Log.d(
-            TAG,
-            "Element cornerpoint is: " + Arrays.toString(element.cornerPoints)
-          )
-          Log.d(
-            TAG,
-            "Element language is: " + element.recognizedLanguage
-          )
+          Timber.d("Element text is: " + element.text)
+          Timber.d("Element boundingbox is: " + element.boundingBox)
+          Timber.d("Element cornerpoint is: " + Arrays.toString(element.cornerPoints))
+          Timber.d("Element language is: " + element.recognizedLanguage)
         }
       }
     }
   }
 
   companion object {
-    private const val TAG = "TextGraphic"
     private const val TEXT_COLOR = Color.BLACK
     private const val MARKER_COLOR = Color.WHITE
-    private const val TEXT_SIZE = 54.0f
+    private const val TEXT_SIZE = 48.0f
     private const val STROKE_WIDTH = 4.0f
   }
 }

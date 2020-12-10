@@ -37,14 +37,14 @@ import android.widget.PopupWindow;
  * ================================================
  */
 public class CustomPopupWindow extends PopupWindow {
-    private View mContentView;
-    private View mParentView;
-    private CustomPopupWindowListener mListener;
-    private boolean isOutsideTouch;
-    private boolean isFocus;
-    private Drawable mBackgroundDrawable;
-    private int mAnimationStyle;
-    private boolean isWrap;
+    protected View mContentView;
+    protected View mParentView;
+    protected CustomPopupWindowListener mListener;
+    protected boolean isOutsideTouch;
+    protected boolean isFocus;
+    protected Drawable mBackgroundDrawable;
+    protected int mAnimationStyle;
+    protected boolean isWrap;
 
     protected CustomPopupWindow(Builder builder) {
         this.mContentView = builder.contentView;
@@ -62,7 +62,7 @@ public class CustomPopupWindow extends PopupWindow {
         return new Builder();
     }
 
-    private void initLayout() {
+    protected void initLayout() {
         mListener.initPopupView(mContentView);
         setWidth(isWrap ? LayoutParams.WRAP_CONTENT : LayoutParams.MATCH_PARENT);
         setHeight(isWrap ? LayoutParams.WRAP_CONTENT : LayoutParams.MATCH_PARENT);
@@ -104,14 +104,14 @@ public class CustomPopupWindow extends PopupWindow {
     }
 
     public static class Builder {
-        private View contentView;
-        private View parentView;
-        private CustomPopupWindowListener listener;
-        private boolean isOutsideTouch = true;//默认为true
-        private boolean isFocus = true;//默认为true
-        private Drawable backgroundDrawable = new ColorDrawable(0x00000000);//默认为透明
-        private int animationStyle = -1;
-        private boolean isWrap;
+        protected View contentView;
+        protected View parentView;
+        protected CustomPopupWindowListener listener;
+        protected boolean isOutsideTouch = true;//默认为true
+        protected boolean isFocus = true;//默认为true
+        protected Drawable backgroundDrawable = new ColorDrawable(0x00000000);//默认为透明
+        protected int animationStyle = -1;
+        protected boolean isWrap;
 
         protected Builder() {
         }

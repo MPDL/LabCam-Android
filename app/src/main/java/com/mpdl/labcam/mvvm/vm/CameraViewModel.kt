@@ -5,10 +5,13 @@ import android.text.TextUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.mpdl.labcam.mvvm.repository.LoginRepository
+import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirectoryBean
 import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
 import com.mpdl.labcam.mvvm.vm.uistate.CameraUiState
+import com.mpdl.labcam.mvvm.vm.uistate.DirTreeViewDialogState
+import com.mpdl.labcam.treeviewbase.TreeNode
 import com.mpdl.mvvm.base.BaseResult
 import com.mpdl.mvvm.base.BaseViewModel
 import com.mpdl.mvvm.globalsetting.IResponseErrorListener
@@ -20,37 +23,37 @@ class CameraViewModel(application: Application,
     BaseViewModel<LoginRepository,CameraUiState>(application, repository, responseErrorListener) {
     private var cameraUiState = MutableLiveData<CameraUiState>(CameraUiState())
     override fun getUiState(): LiveData<CameraUiState> = cameraUiState
-    private var directoryData = MutableLiveData<List<KeeperDirectoryBean>>()
-    fun getDirectoryData() = directoryData
+
+    private var dirDialogState = MutableLiveData<DirTreeViewDialogState>()
+    fun getDirDialogState(): MutableLiveData<DirTreeViewDialogState> = dirDialogState
+
 
     fun getRepos(){
-        apply(object : ResultCallBack<List<KeeperDirectoryBean>>{
-            override suspend fun callBack(): BaseResult<List<KeeperDirectoryBean>>
+        apply(object : ResultCallBack<List<KeeperDirItem>>{
+            override suspend fun callBack(): BaseResult<List<KeeperDirItem>>
                     = mRepository.getRepos()
         },{
-            directoryData.postValue(it)
+            dirDialogState.postValue(DirTreeViewDialogState(list = it))
         },{
-//            directoryData.postValue(null)
-            cameraUiState.postValue(CameraUiState(showToastMsg = "get dir fail",getDirError = true))
+            dirDialogState.postValue(DirTreeViewDialogState())
         })
     }
-    fun getDir(saveDirectoryBean: SaveDirectoryBean){
-        apply(object : ResultCallBack<List<KeeperDirectoryBean>>{
-            override suspend fun callBack(): BaseResult<List<KeeperDirectoryBean>>
-                    = mRepository.getDir(saveDirectoryBean.repoId,saveDirectoryBean.path,"d")
+    fun getDir(node: TreeNode<KeeperDirItem>, dirItem: KeeperDirItem){
+        apply(object : ResultCallBack<List<KeeperDirItem>>{
+            override suspend fun callBack(): BaseResult<List<KeeperDirItem>>
+                    = mRepository.getDir(dirItem.repoId,dirItem.path,"d")
         },{
-            directoryData.postValue(it)
+            dirDialogState.postValue(DirTreeViewDialogState(node=node,list = it))
         },{
-//            directoryData.postValue(null)
-            cameraUiState.postValue(CameraUiState(showToastMsg = "get dir fail",getDirError = true))
+            dirDialogState.postValue(DirTreeViewDialogState(node=node,list = null))
         })
     }
 
-    fun checkDirPath(saveDirectoryBean: SaveDirectoryBean){
+    fun checkDirPath(item: KeeperDirItem){
         cameraUiState.postValue(CameraUiState(loading = true))
         apply(object : ResultCallBack<String>{
             override suspend fun callBack(): BaseResult<String>
-                    = mRepository.getUploadLink(saveDirectoryBean.repoId,saveDirectoryBean.path)
+                    = mRepository.getUploadLink(item.repoId,item.path)
         },{
             Timber.d("uploadUrl: $it")
             if (!TextUtils.isEmpty(it)){
@@ -64,11 +67,11 @@ class CameraViewModel(application: Application,
         })
     }
 
-    fun getUploadLink(saveDirectoryBean: SaveDirectoryBean){
+    fun getUploadLink(item: KeeperDirItem){
         cameraUiState.postValue(CameraUiState(loading = true))
         apply(object : ResultCallBack<String>{
             override suspend fun callBack(): BaseResult<String>
-                    = mRepository.getUploadLink(saveDirectoryBean.repoId,saveDirectoryBean.path)
+                    = mRepository.getUploadLink(item.repoId,item.path)
         },{
             Timber.d("uploadUrl: $it")
             if (!TextUtils.isEmpty(it)){
