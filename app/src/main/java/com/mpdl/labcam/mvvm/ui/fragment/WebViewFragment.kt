@@ -40,63 +40,63 @@ class WebViewFragment: BaseFragment<LaunchViewModel>() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View = inflater.inflate(R.layout.fragment_webview,container,false)
+    ): View = inflater.inflate(R.layout.dialog_dir_tree_view,container,false)
 
     /** AndroidX navigation arguments */
     private val args: WebViewFragmentArgs by navArgs()
 
     override fun initData(savedInstanceState: Bundle?) {
-        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+//        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
-        webview.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                Timber.d("newProgress $newProgress")
-                if (newProgress == 100) {
-                    progressBar.visibility = View.GONE //加载完网页进度条消失
-                } else {
-                    progressBar.visibility = View.VISIBLE //开始加载网页时显示进度条
-                    progressBar.progress = newProgress //设置进度值
-                }
-                super.onProgressChanged(view, newProgress)
-            }
-        }
-
-        val settings = webview.settings
-        settings.javaScriptEnabled = true
-        //支持缩放
-        settings.useWideViewPort = true//设定支持viewport
-        settings.loadWithOverviewMode = true
-        settings.builtInZoomControls = true
-
-        //设置自适应屏幕，两者合用
-        settings.useWideViewPort = true; //将图片调整到适合webview的大小
-        settings.loadWithOverviewMode = true; // 缩放至屏幕的大小
-
-        //缩放操作
-        settings.setSupportZoom(true); //支持缩放，默认为true。是下面那个的前提。
-        settings.builtInZoomControls = true; //设置内置的缩放控件。若为false，则该WebView不可缩放
-        settings.displayZoomControls = false; //隐藏原生的缩放控件
-
-        webview.loadUrl(args.url)
-
-        webview.setOnKeyListener { _, _, keyEvent ->
-            if(keyEvent.keyCode == KeyEvent.KEYCODE_BACK && webview.canGoBack()) {
-                webview.goBack();
-                true
-            }else{
-                false
-            }
-        }
+//        webview.webChromeClient = object : WebChromeClient() {
+//            override fun onProgressChanged(view: WebView?, newProgress: Int) {
+//                Timber.d("newProgress $newProgress")
+//                if (newProgress == 100) {
+//                    progressBar.visibility = View.GONE //加载完网页进度条消失
+//                } else {
+//                    progressBar.visibility = View.VISIBLE //开始加载网页时显示进度条
+//                    progressBar.progress = newProgress //设置进度值
+//                }
+//                super.onProgressChanged(view, newProgress)
+//            }
+//        }
+//
+//        val settings = webview.settings
+//        settings.javaScriptEnabled = true
+//        //支持缩放
+//        settings.useWideViewPort = true//设定支持viewport
+//        settings.loadWithOverviewMode = true
+//        settings.builtInZoomControls = true
+//
+//        //设置自适应屏幕，两者合用
+//        settings.useWideViewPort = true; //将图片调整到适合webview的大小
+//        settings.loadWithOverviewMode = true; // 缩放至屏幕的大小
+//
+//        //缩放操作
+//        settings.setSupportZoom(true); //支持缩放，默认为true。是下面那个的前提。
+//        settings.builtInZoomControls = true; //设置内置的缩放控件。若为false，则该WebView不可缩放
+//        settings.displayZoomControls = false; //隐藏原生的缩放控件
+//
+//        webview.loadUrl(args.url)
+//
+//        webview.setOnKeyListener { _, _, keyEvent ->
+//            if(keyEvent.keyCode == KeyEvent.KEYCODE_BACK && webview.canGoBack()) {
+//                webview.goBack();
+//                true
+//            }else{
+//                false
+//            }
+//        }
     }
 
     override fun onResume() {
         super.onResume()
-        webview.onResume()
+//        webview.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        webview.onPause()
+//        webview.onPause()
     }
 
     override fun onDestroyView() {

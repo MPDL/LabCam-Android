@@ -2,8 +2,8 @@
 <resources>
 
     <string-array name="upload_network">
-        <item>Wifi only</item>
         <item>Cellular</item>
+        <item>Wifi only</item>
     </string-array>
 
 

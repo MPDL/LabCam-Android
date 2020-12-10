@@ -22,18 +22,22 @@ import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
 import android.text.TextUtils
+import android.text.method.HideReturnsTransformationMethod
+import android.text.method.PasswordTransformationMethod
 import android.view.*
 import android.widget.AdapterView
 import androidx.core.widget.addTextChangedListener
 import androidx.navigation.Navigation
+import androidx.recyclerview.widget.RecyclerView
 import com.mpdl.labcam.BuildConfig
 import com.mpdl.labcam.R
 import com.mpdl.labcam.mvvm.repository.bean.ChannelBean
-import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean
+import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
 import com.mpdl.labcam.mvvm.ui.adapter.ChannelAdapter
-import com.mpdl.labcam.mvvm.ui.widget.FileSelectorDialog
+import com.mpdl.labcam.mvvm.ui.widget.DirTreeViewPopup
 import com.mpdl.labcam.mvvm.vm.LoginViewModel
+import com.mpdl.labcam.treeviewbase.TreeNode
 import com.mpdl.mvvm.base.BaseFragment
 import kotlinx.android.synthetic.main.fragment_login.*
 import org.koin.androidx.viewmodel.ext.android.getViewModel
@@ -44,7 +48,9 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
     override fun initViewModel(): LoginViewModel = getViewModel()
     private lateinit var channelData: List<ChannelBean>
 
-    private lateinit var fileSelectorDialog: FileSelectorDialog
+    private lateinit var dirTreeViewPopup: DirTreeViewPopup
+    private var curTreeNode: TreeNode<KeeperDirItem>? = null
+    private var passwordStatus = false
 
     override fun initView(
         inflater: LayoutInflater,
@@ -66,33 +72,65 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
                 when(position){
                     0->{
                         btn_register.visibility = View.VISIBLE
+                        btn_forgot.visibility = View.VISIBLE
                     }
                     1->{
                         btn_register.visibility = View.GONE
+                        btn_forgot.visibility = View.GONE
                     }
                     2->{
                         btn_register.visibility = View.GONE
+                        btn_forgot.visibility = View.GONE
                     }
                 }
             }
 
         }
 
-        fileSelectorDialog = FileSelectorDialog(requireContext())
-        fileSelectorDialog.setCanceledOnTouchOutside(false)
+        dirTreeViewPopup = DirTreeViewPopup.builder(requireContext()).build().setDirTreeViewListener(object :
+            DirTreeViewPopup.DirTreeViewListener {
+            override fun onConfirm(item: KeeperDirItem?) {
+                if (item == null){
+                    showMessage("Please select a directory")
+                }else{
+                    mViewModel.getUploadLink(item)
+                }
+            }
 
+            override fun onItemClick(node: TreeNode<*>?) {
+                curTreeNode = node as TreeNode<KeeperDirItem>?
+                if (curTreeNode == null){
+                    getDir(null)
+                }
+                curTreeNode?.let {
+                    if (it.isLeaf){
+                        getDir(curTreeNode)
+                    }
+                }
+            }
+
+        })
         setListener()
 
-        observe(mViewModel.getDirectoryData()){list->
-            fileSelectorDialog?.let {
-                it.setData(list)
+        observe(mViewModel.getDirDialogState()){state->
+            state?.let{
+                dirTreeViewPopup?.let {
+                    if (curTreeNode == null){
+                        it.setData(state.node, state.list)
+                    }else{
+                        if (curTreeNode?.content?.id == state.node?.content?.id){
+                            it.setData(curTreeNode, state.list)
+                        }
+                    }
+                }
             }
         }
+
 
         if (!mViewModel.getUploadFileUrl().hasObservers()){
             observe(mViewModel.getUploadFileUrl()){
                 if (!TextUtils.isEmpty(it)){
-                    fileSelectorDialog?.dismiss()
+                    dirTreeViewPopup?.dismiss()
                     Timber.d("actionLoginFragmentToCameraFragment")
                     Navigation.findNavController(requireActivity(),R.id.my_nav_host_fragment)
                         .navigate(LoginFragmentDirections.actionLoginFragmentToCameraFragment())
@@ -103,15 +141,11 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
         observe(mViewModel.getUiState()){
             if (it.loginSuccess){
-                if (MainActivity.getSaveDirectory() == null){
-                    fileSelectorDialog.show()
-                }else{
-                    mViewModel.getUploadLink(MainActivity.getSaveDirectory()!!)
-                }
+                dirTreeViewPopup.show()
             }
 
             if (it.showFileSelectorDialog){
-                fileSelectorDialog?.show()
+                dirTreeViewPopup?.show()
             }
         }
 
@@ -122,37 +156,18 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
     }
 
-    private fun getDir(bean: SaveDirectoryBean?){
-        if (bean == null){
+    private fun getDir(node: TreeNode<KeeperDirItem>?){
+        if (node == null){
             mViewModel.getRepos()
         }else {
-            mViewModel.getDir(bean)
+            mViewModel.getDir(node = node, dirItem = node.content)
         }
     }
 
     private fun setListener(){
-        fileSelectorDialog.setFileSelectorListener(object :
-            FileSelectorDialog.FileSelectorListener {
-            override fun onBack(bean: SaveDirectoryBean?) {
-                getDir(bean)
-            }
-
-            override fun onSave(bean: SaveDirectoryBean?) {
-                if (bean == null){
-                    showMessage("Please select a directory")
-                }else{
-                    MainActivity.setSaveDirectory(bean)
-                    mViewModel.getUploadLink(bean)
-                }
-
-            }
-
-            override fun onItemClick(bean: SaveDirectoryBean?) {
-                getDir(bean)
-            }
-        })
 
         btn_login.setOnClickListener {
+//            dirTreeViewPopup.show()
             val username = et_account.text.toString().trim()
             val password = et_password.text.toString().trim()
             val baseUrl = et_url.text.toString().trim()
@@ -166,16 +181,10 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
         btn_register.setOnClickListener {
             goWebView("${et_url.text.toString().trim()}/accounts/register/")
-//            Navigation.findNavController(requireView())
-//                .navigate(LoginFragmentDirections
-//                    .actionLoginFragmentToWebViewFragment("${et_url.text.toString().trim()}/accounts/register/"))
         }
 
         btn_forgot.setOnClickListener {
             goWebView("${et_url.text.toString().trim()}/accounts/password/reset/")
-//            Navigation.findNavController(requireView())
-//                .navigate(LoginFragmentDirections
-//                    .actionLoginFragmentToWebViewFragment("${et_url.text.toString().trim()}/accounts/password/reset/"))
         }
 
         tv_spinner.setOnClickListener {
@@ -188,6 +197,17 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
         et_password.addTextChangedListener {
             loginVisible()
+        }
+
+        ll_password_status.setOnClickListener {
+            passwordStatus = !passwordStatus
+            if (passwordStatus){
+                et_password.transformationMethod = HideReturnsTransformationMethod.getInstance()
+                iv_password_status.setImageResource(R.mipmap.ic_eye_on)
+            }else{
+                iv_password_status.setImageResource(R.mipmap.ic_eye_off)
+                et_password.transformationMethod = PasswordTransformationMethod.getInstance()
+            }
         }
     }
 

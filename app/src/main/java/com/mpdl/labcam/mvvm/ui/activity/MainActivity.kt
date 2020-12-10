@@ -20,6 +20,7 @@ import com.mpdl.mvvm.base.BaseActivity
 import com.mpdl.mvvm.common.Preference
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
 import okhttp3.OkHttpClient
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 import retrofit2.Retrofit
@@ -46,7 +47,6 @@ class MainActivity: BaseActivity<MainViewModel>()  {
         filter.addAction("android.net.wifi.WIFI_STATE_CHANGED")
         filter.addAction("android.net.wifi.STATE_CHANGE")
         registerReceiver(NetworkConnectChangedReceiver(), filter)
-
 
         bindService(Intent(this,UploadFilesService::class.java),object : ServiceConnection{
             override fun onServiceDisconnected(p0: ComponentName?) {
@@ -166,49 +166,54 @@ class MainActivity: BaseActivity<MainViewModel>()  {
             Preference.preferences.edit().putString(SP_UPLOAD_URL,url).apply()
         }
 
-        private var saveDirectoryBean: SaveDirectoryBean? = null
-        fun setSaveDirectory(bean: SaveDirectoryBean?){
-            saveDirectoryBean = bean
-            if (bean == null){
+        private var curDirItem: KeeperDirItem? = null
+
+        fun setCurDirItem(item: KeeperDirItem?){
+            curDirItem = item
+            if (item == null){
                 Preference.preferences.edit().putString(SP_SAVE_DIRECTORY,null).apply()
             }else{
-                Preference.preferences.edit().putString(SP_SAVE_DIRECTORY,Gson().toJson(bean)).apply()
+                Preference.preferences.edit().putString(SP_SAVE_DIRECTORY,Gson().toJson(item)).apply()
             }
         }
-        fun getSaveDirectory():SaveDirectoryBean?{
-            if (saveDirectoryBean == null){
+
+        fun getCurDirItem():KeeperDirItem?{
+            if (curDirItem == null){
                 var jsonStr = Preference.preferences.getString(SP_SAVE_DIRECTORY,null)
                 if (!TextUtils.isEmpty(jsonStr)){
-                    saveDirectoryBean = Gson().fromJson(jsonStr,SaveDirectoryBean::class.java)
+                    curDirItem = Gson().fromJson(jsonStr,KeeperDirItem::class.java)
                 }
             }
-            return saveDirectoryBean
+            return curDirItem
         }
 
         fun loginOut(){
             galleryList.clear()
             setToken("")
             setUploadUrl("")
-            setSaveDirectory(null)
+            setCurDirItem(null)
             cleanRetrofit()
         }
 
         fun startUpload(){
+            Timber.d("startUpload, uploadNetwork:${getUploadNetwork()}  curNetworkType:$curNetworkType")
             if(getUploadNetwork() == 1 || curNetworkType == getUploadNetwork()){
+                Timber.d("startUpload uploadFilesService:$uploadFilesService")
                 uploadFilesService?.startUploadFile()
             }
         }
 
         /**
          * 用户选择的上传网络
-         * 0/1 wifi/Cellular
+         * 0/1
+         * Cellular/wifi
          */
         private var uploadNetwork:Int = -1
 
         /**
          * 当前网络状态
          * -1/0/1
-         * not network/wifi/Cellular
+         * not network/Cellular/wifi
          */
         var curNetworkType: Int = -1
 
@@ -220,7 +225,7 @@ class MainActivity: BaseActivity<MainViewModel>()  {
 
         fun getUploadNetwork(): Int{
             if (uploadNetwork == -1){
-                uploadNetwork = Preference.preferences.getInt(SP_UPLOAD_NETWORK,0)
+                uploadNetwork = Preference.preferences.getInt(SP_UPLOAD_NETWORK,1)
             }
             return uploadNetwork
         }
