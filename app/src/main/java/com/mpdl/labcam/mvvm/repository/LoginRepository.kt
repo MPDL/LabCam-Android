@@ -1,6 +1,7 @@
 package com.mpdl.labcam.mvvm.repository
 
 import com.mpdl.labcam.mvvm.repository.api.LabCamApi
+import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirectoryBean
 import com.mpdl.labcam.mvvm.repository.bean.LoginResponse
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
@@ -18,14 +19,14 @@ class LoginRepository(repositoryManager: IRepositoryManager):
         })
     }
 
-    suspend fun getRepos(): BaseResult<List<KeeperDirectoryBean>>{
+    suspend fun getRepos(): BaseResult<List<KeeperDirItem>>{
         return safeApiResponse(call = {
             MainActivity.getRetrofit()!!.create(LabCamApi::class.java)
                 .getRepos()
         },retry = 2)
     }
 
-    suspend fun getDir(repoId:String, path:String, t:String): BaseResult<List<KeeperDirectoryBean>>{
+    suspend fun getDir(repoId:String, path:String, t:String): BaseResult<List<KeeperDirItem>>{
         return safeApiResponse(call = {
             MainActivity.getRetrofit()!!.create(LabCamApi::class.java)
                 .getDir(repoId,path,t)

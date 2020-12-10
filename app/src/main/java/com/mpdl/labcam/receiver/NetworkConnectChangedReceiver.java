@@ -10,6 +10,9 @@ import android.util.Log;
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity;
 import com.mpdl.labcam.service.UploadFilesService;
 
+import timber.log.Timber;
+
+
 /**
  * 网络改变监控广播
  * <p>
@@ -34,17 +37,18 @@ public class NetworkConnectChangedReceiver extends BroadcastReceiver {
                     .getSystemService(Context.CONNECTIVITY_SERVICE);
             Log.i(TAG1, "CONNECTIVITY_ACTION");
 
+            UploadFilesService filesService = MainActivity.Companion.getUploadFilesService();
             NetworkInfo activeNetwork = manager.getActiveNetworkInfo();
             int networkType = -1;
             if (activeNetwork != null) { // connected to the internet
                 if (activeNetwork.isConnected()) {
                     if (activeNetwork.getType() == ConnectivityManager.TYPE_WIFI) {
                         // connected to wifi
-                        networkType = 0;
+                        networkType = 1;
                         Log.e(TAG, "当前WiFi连接可用 ");
                     } else if (activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE) {
                         // connected to the mobile provider's data plan
-                        networkType = 1;
+                        networkType = 0;
                         Log.e(TAG, "当前移动网络连接可用 ");
                     }
                 } else {
@@ -53,11 +57,11 @@ public class NetworkConnectChangedReceiver extends BroadcastReceiver {
                 }
 
                 //网络发送改变
+                Timber.e("networkType "+networkType+" getCurNetworkType "+MainActivity.Companion.getCurNetworkType());
                 if (networkType != MainActivity.Companion.getCurNetworkType()){
                     MainActivity.Companion.setCurNetworkType(networkType);
-                    UploadFilesService filesService = MainActivity.Companion.getUploadFilesService();
-
                     if (networkType == 1 || networkType == MainActivity.Companion.getUploadNetwork()){
+                        Timber.e("filesService "+filesService);
                         //开始上传图片
                         if (filesService != null){
                             filesService.startUploadFile();
@@ -76,9 +80,14 @@ public class NetworkConnectChangedReceiver extends BroadcastReceiver {
                 Log.e(TAG1, "getDetailedState()"
                         + activeNetwork.getDetailedState().name());
                 Log.e(TAG1, "getDetailedState()" + activeNetwork.getExtraInfo());
-                Log.e(TAG1, "getType()" + activeNetwork.getType());
+                Log.e(TAG1, "getType()" + networkType);
             } else {   // not connected to the internet
                 Log.e(TAG, "当前没有网络连接，请确保你已经打开网络 ");
+                MainActivity.Companion.setCurNetworkType(-1);
+                //停止上传图片
+                if (filesService != null){
+                    filesService.stopUploadFile();
+                }
             }
 
 
@@ -87,4 +96,3 @@ public class NetworkConnectChangedReceiver extends BroadcastReceiver {
 
 
 }
-

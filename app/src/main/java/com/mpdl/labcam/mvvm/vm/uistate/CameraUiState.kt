@@ -7,6 +7,5 @@ data class CameraUiState(
     override var showToastMsg: String? = null,
     var loginSuccess: Boolean = false,
     var showFileDirDialog: Boolean = false,
-    var getDirError: Boolean = false,
     var checkoutDirPathSuc:Boolean = false,
     val uploadUrlSuc: Boolean = false) : BaseUiState(loading,showToastMsg)

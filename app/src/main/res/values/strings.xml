@@ -7,4 +7,6 @@
     <string name="et_hint_password">password</string>
     <string name="et_hint_username">Username</string>
     <string name="keeper">KEEPER</string>
+    <string name="confirm">CONFIRM</string>
+    <string name="cancel">CANCEL</string>
 </resources>

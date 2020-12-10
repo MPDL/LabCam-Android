@@ -18,9 +18,9 @@ class GlobalConfig: IGlobalConfig{
                                     builder: OkHttpClient.Builder): OkHttpClient.Builder {
 
         return builder
-            .writeTimeout(3000,TimeUnit.MILLISECONDS)
-            .connectTimeout(3000,TimeUnit.MILLISECONDS)
-            .readTimeout(3000,TimeUnit.MILLISECONDS)
+            .connectTimeout(3,TimeUnit.SECONDS)
+            .writeTimeout(15,TimeUnit.SECONDS)
+            .readTimeout(15,TimeUnit.SECONDS)
             .addInterceptor(CacheInterceptor())
             .addNetworkInterceptor(CacheInterceptor())
             .cache(Cache(File(application.filesDir,"labCamCache"),10 * 1024 * 1024))
