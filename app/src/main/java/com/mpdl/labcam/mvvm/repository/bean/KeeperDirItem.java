@@ -74,4 +74,14 @@ public class KeeperDirItem implements LayoutItemType {
     public int getLayoutId() {
         return R.layout.item_dir;
     }
+
+    @Override
+    public String toString() {
+        return "KeeperDirItem{" +
+                ", type='" + type + '\'' +
+//                ", name='" + name + '\'' +
+                ", path='" + path + '\'' +
+                ", repoName='" + repoName + '\'' +
+                '}';
+    }
 }

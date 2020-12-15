@@ -1,15 +1,20 @@
 package com.mpdl.labcam.mvvm.ui.fragment
 
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.ProgressDialog
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
-import android.content.DialogInterface
-import android.content.pm.ActivityInfo
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
@@ -17,9 +22,12 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.view.*
+import android.view.OrientationEventListener.ORIENTATION_UNKNOWN
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
 import androidx.lifecycle.lifecycleScope
@@ -28,6 +36,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.google.mlkit.common.MlKitException
+import com.mpdl.labcam.BuildConfig
 import com.mpdl.labcam.R
 import com.mpdl.labcam.detecort.TextRecognitionProcessor
 import com.mpdl.labcam.detecort.VisionImageProcessor
@@ -56,7 +65,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class CameraFragment: BaseFragment<CameraViewModel>() {
+class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     override fun initViewModel(): CameraViewModel = getViewModel()
 
     private var displayId: Int = -1
@@ -76,6 +85,8 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     private var flashMode:Int = ImageCapture.FLASH_MODE_AUTO
     private var setPopup: CustomPopupWindow? = null
     private var tvDir: TextView? = null
+    private var mSensorManager: SensorManager? = null
+    private var isPortrait = true
 
     /** Blocking camera operations are performed using this executor */
     private var cameraExecutor: ExecutorService? = null
@@ -84,6 +95,8 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
 
 
     private var dirTreeViewPopup: DirTreeViewPopup? = null
+    private var changeDirDialog: AlertDialog? = null
+
 //    private var curTreeNode: TreeNode<KeeperDirItem>? = null
 
 
@@ -121,14 +134,12 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     @SuppressLint("RestrictedApi")
     override fun initData(savedInstanceState: Bundle?) {
         EventBus.getDefault().register(this)
-        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
-        flashMode = Preference.preferences.getInt(SP_FLASH_MODE,ImageCapture.FLASH_MODE_AUTO);
+        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+//        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        flashMode = Preference.preferences.getInt(SP_FLASH_MODE,ImageCapture.FLASH_MODE_AUTO)
         cameraExecutor = Executors.newSingleThreadExecutor()
         displayManager.registerDisplayListener(displayListener, null)
         outputDirectory = MainActivity.getOutputDirectory(requireContext())
-
-        initDirTreeViewPopup()
 
         setOcrStatus()
 
@@ -151,13 +162,9 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         observe(mViewModel.getDirDialogState()){state->
             state?.let{
                 dirTreeViewPopup?.let {
-                    if (dirTreeViewPopup?.curTreeNode == null){
-                        it.setData(state.node, state.list)
-                    }else{
-                        val curItem = dirTreeViewPopup?.curTreeNode as TreeNode<KeeperDirItem>
-                        if (curItem.content?.id == state.node?.content?.id){
-                            it.setData(curItem, state.list)
-                        }
+                    val curItem = dirTreeViewPopup?.curTreeNode as TreeNode<KeeperDirItem>
+                    if (curItem.content?.id == state.node?.content?.id){
+                        it.setData(curItem, state.list)
                     }
                 }
             }
@@ -176,7 +183,7 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             if (it.checkoutDirPathSuc){
                 MainActivity.getCurDirItem()?.let {saveDir->
                     MainActivity.startUpload()
-                }
+                    showUploadInfo(saveDir)                }
             }
 
             if (it.showFileDirDialog){
@@ -222,6 +229,10 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             MainActivity.openOcr = !MainActivity.openOcr
             setOcrStatus()
         }
+
+        mSensorManager = context!!.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        mSensorManager?.registerListener(this , mSensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME)
+
     }
 
 
@@ -510,7 +521,7 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     private fun setFlashBtn(){
         when(flashMode){
             ImageCapture.FLASH_MODE_AUTO -> {
-                iv_flash.setImageResource(R.mipmap.ic_flash_a)
+                iv_flash.setImageResource(R.mipmap.ic_flash_auto)
             }
             ImageCapture.FLASH_MODE_ON -> {
                 iv_flash.setImageResource(R.mipmap.ic_flash_on)
@@ -527,7 +538,7 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             //没有网络
             if (MainActivity.curNetworkType == -1){
                 MainActivity.getCurDirItem()?.let{
-                    showMessage("upload path: "+it.repoName+it.path)
+                    showUploadInfo(it)
                 }
                 return
             }
@@ -535,16 +546,19 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
             if (curDirItem != null){
                 mViewModel.checkDirPath(curDirItem)
             }else{
-                if (dirTreeViewPopup != null){
-                    dirTreeViewPopup?.show()
-                }
+                showDirTreeViewPopup(false)
             }
         }
     }
 
 
-    private fun initDirTreeViewPopup(){
+    private fun showDirTreeViewPopup(isRecoveryState: Boolean){
+        if (dirTreeViewPopup != null){
+            dirTreeViewPopup?.release()
+            dirTreeViewPopup = null
+        }
         dirTreeViewPopup = DirTreeViewPopup.builder(requireContext())
+            .isRecoveryState(isRecoveryState)
             .build()
             .setDirTreeViewListener(object : DirTreeViewPopup.DirTreeViewListener {
                 override fun onConfirm(item: KeeperDirItem?) {
@@ -554,27 +568,24 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                         if (MainActivity.isNetworkConnected()){
                             mViewModel.getUploadLink(item)
                         }else{
+                            tvDir?.text = item.repoName+item.path
                             dirTreeViewPopup?.dismiss()
                         }
                     }
                 }
 
-                override fun onItemClick(node: TreeNode<*>?) {
-                    if (dirTreeViewPopup?.curTreeNode == null){
-                        getDir(null)
-                    }
-                    dirTreeViewPopup?.curTreeNode?.let {
-                        if (it.isLeaf){
-                            getDir(dirTreeViewPopup?.curTreeNode as TreeNode<KeeperDirItem>?)
-                        }
+                override fun onItemClick(node: TreeNode<*>) {
+                    if (node.childList.isEmpty()){
+                        getDir(node as TreeNode<KeeperDirItem>)
                     }
                 }
             })
+        dirTreeViewPopup?.show()
     }
 
-    private fun getDir(node: TreeNode<KeeperDirItem>?){
-        if (node == null){
-            mViewModel.getRepos()
+    private fun getDir(node: TreeNode<KeeperDirItem>){
+        if (node.isRoot){
+            mViewModel.getRepos(node)
         }else {
             mViewModel.getDir(node = node, dirItem = node.content)
         }
@@ -595,11 +606,11 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
                         tvDir!!.text = saveDir.repoName+saveDir.path
                     }
                     tvDir!!.setOnClickListener {
-                        dirTreeViewPopup!!.show()
+                        showDirTreeViewPopup(false)
                     }
 
                     it.findViewById<ImageView>(R.id.iv_dir).setOnClickListener {
-                        dirTreeViewPopup!!.show()
+                        showDirTreeViewPopup(false)
                     }
 
                     tvNetwork.setOnClickListener {
@@ -651,17 +662,23 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
     }
 
     private fun showChangeDir(){
-        TipsDialog
-            .TipsBuilder(requireContext())
-            .setTitle("Upload not successful")
-            .setMessage("Couldn’t find selected for folder,please choose another one")
-            .setPositiveButton("CHANGE") { dialog, p1 ->
-                dialog?.dismiss()
-                dirTreeViewPopup?.show()
+        if (changeDirDialog == null || !changeDirDialog!!.isShowing){
+            if (dirTreeViewPopup != null && dirTreeViewPopup!!.isShowing){
+                return
             }
-            .setCancelable(false)
-            .show()
+            changeDirDialog  = TipsDialog
+                .TipsBuilder(requireContext())
+                .setTitle("Upload failed")
+                .setMessage("Target folder does not exist, please select another one.")
+                .setPositiveButton("CHANGE") { dialog, p1 ->
+                    dialog?.dismiss()
+                    showDirTreeViewPopup(true)
+                }
+                .setCancelable(false).create()
+            changeDirDialog?.show()
+        }
     }
+
 
 
 
@@ -692,17 +709,34 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         return AspectRatio.RATIO_16_9
     }
 
+    private fun updateIcon(){
+        if (isPortrait){
+            btn_camera_switch.rotation = 0f
+            btn_photo_view.rotation = 0f
+            iv_flash.rotation = 0f
+            iv_ocr.rotation = 0f
+            iv_menu.rotation = 0f
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
+        }else{
+            btn_camera_switch.rotation = 90f
+            btn_photo_view.rotation = 90f
+            iv_flash.rotation = 90f
+            iv_ocr.rotation = 90f
+            iv_menu.rotation = 90f
+        }
+    }
+
+/*    override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         setUpCamera()
-    }
+    }*/
     override fun onDestroyView() {
         super.onDestroyView()
         EventBus.getDefault().unregister(this)
         // Shut down our background executor
         cameraExecutor!!.shutdown()
         displayManager.unregisterDisplayListener(displayListener)
+        mSensorManager?.unregisterListener(this)
     }
 
     var progressDialog: ProgressDialog? = null
@@ -730,20 +764,98 @@ class CameraFragment: BaseFragment<CameraViewModel>() {
         MainActivity.startUpload()
     }
 
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+    }
+
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        val values = event!!.values
+        var orientation: Int = ORIENTATION_UNKNOWN
+        val X = -values[0]
+        val Y = -values[1]
+        val Z = -values[2]
+        val magnitude = X * X + Y * Y
+        // Don't trust the angle if the magnitude is small compared to the y
+        // value
+        // Don't trust the angle if the magnitude is small compared to the y
+        // value
+        if (magnitude * 4 >= Z * Z) {
+            // 屏幕旋转时
+            val OneEightyOverPi = 57.29577957855f
+            val angle = Math.atan2(
+                -Y.toDouble(),
+                X.toDouble()
+            ).toFloat() * OneEightyOverPi
+            orientation = 90 - Math.round(angle)
+            // normalize to 0 - 359 range
+            while (orientation >= 360) {
+                orientation -= 360
+            }
+            while (orientation < 0) {
+                orientation += 360
+            }
+        }
+        // 检测到当前实际是横屏
+        if (orientation > 225 && orientation < 315) {
+            if (isPortrait){
+                isPortrait = false
+                Timber.d("onSensorChanged 横屏")
+                updateIcon()
+            }
+        }
+        // 检测到当前实际是竖屏
+        else if (orientation > 315 && orientation < 360 || orientation > 0 && orientation < 45) {
+            if (!isPortrait){
+                isPortrait = true
+                Timber.d("onSensorChanged 竖屏")
+                updateIcon()
+            }
+        }
+    }
+
+    private fun showUploadInfo(saveDir: KeeperDirItem){
+        Toast.makeText(requireContext(),"Upload dir: "+saveDir.repoName+saveDir.path +"\n"+"Upload via:"+resources.getStringArray(R.array.upload_network)[MainActivity.getUploadNetwork()],Toast.LENGTH_LONG).show()
+    }
+
+    private fun sendNotification(){
+        val mNotificationManager = requireContext().getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "message"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val mChannel = NotificationChannel(channelId, BuildConfig.BUILD_TYPE, NotificationManager.IMPORTANCE_DEFAULT);
+            mChannel.description = "upload success notify"
+            mChannel.enableLights(true)//是否显示通知指示灯
+            mChannel.enableVibration(true)//是否振动
+            mNotificationManager.createNotificationChannel(mChannel);//创建通知渠道
+        }
+        var mBuilder = NotificationCompat.Builder(requireContext(), channelId)
+            .setSmallIcon(R.mipmap.ic_launcher)//小图标
+            .setLargeIcon(BitmapFactory.decodeResource(resources,R.mipmap.ic_launcher))
+            .setContentTitle("LabCam")
+            .setContentText("image upload completed")
+        mNotificationManager.notify(id, mBuilder.build())
+    }
+
+
     @Subscriber(tag = MainActivity.EVENT_UPLOAD_OVER)
     fun uploadOver(msg:String){
-        Timber.d("单张图片上传 完成通知")
-//        if (outputDirectory.listFiles().isEmpty()){
-//            btn_photo_view.setImageResource(R.drawable.ic_photo)
-//        }
+        Timber.d("单张图片上传 完成通知: $isResumed")
+        if (outputDirectory.listFiles().isEmpty()){
+            if (!isResumed){
+                sendNotification()
+            }
+        }
     }
+
+    @Subscriber(tag = MainActivity.EVENT_CHANGE_UPLOAD_PATH)
+    fun changeUploadPath(msg:String){
+        showChangeDir()
+    }
+
 
     companion object {
         const val SP_FLASH_MODE = "sp_flash_mode";
         const val RATIO_4_3_VALUE = 4.0 / 3.0
         const val RATIO_16_9_VALUE = 16.0 / 9.0
     }
-
-
 
 }

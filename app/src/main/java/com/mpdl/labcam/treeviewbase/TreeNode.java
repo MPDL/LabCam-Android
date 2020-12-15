@@ -1,7 +1,6 @@
 package com.mpdl.labcam.treeviewbase;
 
 import androidx.annotation.NonNull;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +14,10 @@ public class TreeNode<T extends LayoutItemType> implements Cloneable {
     private int height = UNDEFINE;
 
     private static final int UNDEFINE = -1;
+
+    public static TreeNode root(){
+        return new TreeNode(null);
+    }
 
     public TreeNode(@NonNull T content) {
         this.content = content;
@@ -112,6 +115,17 @@ public class TreeNode<T extends LayoutItemType> implements Cloneable {
         return parent;
     }
 
+    public List<T> getContents(){
+        List<T> list = new ArrayList<>();
+        list.add((T) this.content);
+        TreeNode root = this;
+        while (root.parent != null) {
+            root = root.parent;
+            list.add((T) root.content);
+        }
+        return list;
+    }
+
     public TreeNode<T> lock() {
         isLocked = true;
         return this;
@@ -130,7 +144,7 @@ public class TreeNode<T extends LayoutItemType> implements Cloneable {
     public String toString() {
         return "TreeNode{" +
                 "content=" + this.content +
-                ", parent=" + (parent == null ? "null" : parent.getContent().toString()) +
+                ", parent=" + (parent == null ? "null" : parent.getContent()) +
                 ", childList=" + (childList == null ? "null" : childList.toString()) +
                 ", isExpand=" + isExpand +
                 '}';

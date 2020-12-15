@@ -15,7 +15,7 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginStart="15dp"
-            android:paddingTop="8dp"
+            android:paddingTop="5dp"
             android:gravity="center_vertical"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
@@ -23,6 +23,7 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView
+                android:id="@+id/iv_menu"
                 android:layout_width="18dp"
                 android:layout_height="22dp"
                 android:layout_marginEnd="8dp"
@@ -33,8 +34,8 @@
             android:id="@+id/btn_flash"
             android:layout_marginEnd="15dp"
             android:paddingEnd="10dp"
-            android:paddingTop="8dp"
-            android:paddingStart="10dp"
+            android:paddingTop="5dp"
+            android:paddingStart="8dp"
             android:gravity="center"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toRightOf="parent"
@@ -43,15 +44,15 @@
             android:layout_height="match_parent">
             <ImageView
                 android:id="@+id/iv_flash"
-                android:layout_width="15dp"
+                android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@mipmap/ic_flash_a"/>
+                android:src="@mipmap/ic_flash_auto"/>
         </LinearLayout>
 
 
         <LinearLayout
             android:id="@+id/btn_ocr"
-            android:paddingTop="8dp"
+            android:paddingTop="5dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toLeftOf="@id/btn_flash"
             app:layout_constraintTop_toTopOf="parent"
@@ -63,7 +64,7 @@
             android:layout_height="match_parent">
             <ImageView
                 android:id="@+id/iv_ocr"
-                android:layout_width="35dp"
+                android:layout_width="32dp"
                 android:layout_height="22dp"
                 android:src="@mipmap/ic_ocr_off"/>
 
