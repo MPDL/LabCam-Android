@@ -27,6 +27,7 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
 import com.mpdl.labcam.mvvm.ui.widget.GraphicOverlay
+import org.simple.eventbus.EventBus
 import java.io.File
 import java.io.FileOutputStream
 
@@ -47,7 +48,7 @@ class TextRecognitionProcessor(context: Context) : VisionProcessorBase<Text>(con
   override fun onSuccess(text: Text, fileName: String?, graphicOverlay: GraphicOverlay) {
     Log.d(TAG, "On-device Text detection successful")
     //保存text 到本地
-    try {
+    /*try {
       fileName?.let {
         if (!TextUtils.isEmpty(text.text)){
           MainActivity.createText(MainActivity.getOutputDirectory(graphicOverlay.context),it)
@@ -56,9 +57,11 @@ class TextRecognitionProcessor(context: Context) : VisionProcessorBase<Text>(con
       }
     } catch (e: Exception) {
       e.printStackTrace()
-    }
+    }*/
+    MainActivity.octText = text.text
+    EventBus.getDefault().post(text.text,MainActivity.EVENT_CHANGE_OCR_TEXT)
     logExtrasForTesting(text)
-    graphicOverlay.add(TextGraphic(graphicOverlay, text))
+//    graphicOverlay.add(TextGraphic(graphicOverlay, text))
   }
 
   override fun onFailure(e: Exception) {

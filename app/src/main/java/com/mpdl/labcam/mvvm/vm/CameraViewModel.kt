@@ -28,14 +28,14 @@ class CameraViewModel(application: Application,
     fun getDirDialogState(): MutableLiveData<DirTreeViewDialogState> = dirDialogState
 
 
-    fun getRepos(){
+    fun getRepos(node: TreeNode<KeeperDirItem>){
         apply(object : ResultCallBack<List<KeeperDirItem>>{
             override suspend fun callBack(): BaseResult<List<KeeperDirItem>>
                     = mRepository.getRepos()
         },{
-            dirDialogState.postValue(DirTreeViewDialogState(list = it))
+            dirDialogState.postValue(DirTreeViewDialogState(node = node,list = it))
         },{
-            dirDialogState.postValue(DirTreeViewDialogState())
+            dirDialogState.postValue(DirTreeViewDialogState(node))
         })
     }
     fun getDir(node: TreeNode<KeeperDirItem>, dirItem: KeeperDirItem){
