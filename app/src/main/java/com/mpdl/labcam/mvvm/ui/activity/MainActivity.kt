@@ -20,7 +20,9 @@ import com.mpdl.mvvm.base.BaseActivity
 import com.mpdl.mvvm.common.Preference
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
+import com.mpdl.labcam.treeviewbase.TreeNode
 import okhttp3.OkHttpClient
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 import retrofit2.Retrofit
@@ -30,7 +32,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-class MainActivity: BaseActivity<MainViewModel>()  {
+class MainActivity: BaseActivity<MainViewModel>() {
     override fun initViewModel(): MainViewModel = getViewModel()
 
     override fun initView(savedInstanceState: Bundle?): Int = R.layout.activity_main
@@ -74,16 +76,21 @@ class MainActivity: BaseActivity<MainViewModel>()  {
 
     companion object {
         const val EVENT_UPLOAD_OVER:String = "event_upload_over"
+        const val EVENT_CHANGE_UPLOAD_PATH:String = "event_change_upload_path"
+        const val EVENT_CHANGE_OCR_TEXT:String = "event_change_ocr_text"
         private const val SP_UPLOAD_URL = "sp_upload_url"
         private const val SP_TOKEN = "sp_token"
         private const val SP_SAVE_DIRECTORY = "sp_save_directory"
         private const val SP_UPLOAD_NETWORK = "sp_upload_network"
+        private const val SP_TREE_NOTES = "sp_tree_notes"
+
 
         const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
         const val PHOTO_EXTENSION = ".jpg"
         const val VIDEO_EXTENSION = ".mp4"
         const val TEXT_EXTENSION = ".md"
 
+        var octText = ""
 
         var context: Context? = null
 
@@ -100,7 +107,6 @@ class MainActivity: BaseActivity<MainViewModel>()  {
         val galleryList :MutableList<Uri> = mutableListOf()
 
         var openOcr:Boolean = false
-
 
         /** Helper function used to create a timestamped file */
         fun createFile(baseFolder: File, format: String, extension: String) =
@@ -155,7 +161,7 @@ class MainActivity: BaseActivity<MainViewModel>()  {
 
         private var uploadUrl: String? = ""
         fun getUploadUrl(): String?{
-            if (TextUtils.isEmpty(token)){
+            if (TextUtils.isEmpty(uploadUrl)){
                 uploadUrl = Preference.preferences.getString(SP_UPLOAD_URL,"")
             }
             return uploadUrl
@@ -185,6 +191,26 @@ class MainActivity: BaseActivity<MainViewModel>()  {
                 }
             }
             return curDirItem
+        }
+
+        private var curTreeNodes: List<KeeperDirItem>? = null
+
+        fun setCurTreeNodes(curTreeNodes: List<KeeperDirItem>?){
+            this.curTreeNodes = curTreeNodes
+            val json = Gson().toJson(curTreeNodes);
+            Timber.e("curTreeNodes $json")
+            Preference.preferences.edit().putString(SP_TREE_NOTES,json).apply()
+        }
+        fun getCurTreeNodes(): List<KeeperDirItem>?{
+            if(curTreeNodes == null){
+                var json = Preference.preferences.getString(SP_TREE_NOTES,null)
+                json?.let {
+                    val type = object : TypeToken<List<KeeperDirItem>>(){}.type
+                    curTreeNodes  = Gson().fromJson<List<KeeperDirItem>>(json,type)
+                    Timber.e("curTreeNodes $curTreeNodes")
+                }
+            }
+            return curTreeNodes
         }
 
         fun loginOut(){

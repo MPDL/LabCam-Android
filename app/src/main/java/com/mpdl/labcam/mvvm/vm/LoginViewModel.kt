@@ -62,14 +62,14 @@ class LoginViewModel(application: Application,
         })
     }
 
-    fun getRepos(){
+    fun getRepos(node: TreeNode<KeeperDirItem>){
         apply(object : ResultCallBack<List<KeeperDirItem>>{
             override suspend fun callBack(): BaseResult<List<KeeperDirItem>>
                     = mRepository.getRepos()
         },{
-            dirDialogState.postValue(DirTreeViewDialogState(list = it))
+            dirDialogState.postValue(DirTreeViewDialogState(node,list = it))
         },{
-            dirDialogState.postValue(DirTreeViewDialogState())
+            dirDialogState.postValue(DirTreeViewDialogState(node))
         })
     }
     fun getDir(node: TreeNode<KeeperDirItem>,dirItem: KeeperDirItem){
@@ -77,9 +77,9 @@ class LoginViewModel(application: Application,
             override suspend fun callBack(): BaseResult<List<KeeperDirItem>>
                     = mRepository.getDir(dirItem.repoId,dirItem.path,"d")
         },{
-            dirDialogState.postValue(DirTreeViewDialogState(node=node,list = it))
+            dirDialogState.postValue(DirTreeViewDialogState(node,list = it))
         },{
-            dirDialogState.postValue(DirTreeViewDialogState(node=node,list = null))
+            dirDialogState.postValue(DirTreeViewDialogState(node,list = null))
         })
     }
 

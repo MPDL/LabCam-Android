@@ -1,26 +1,19 @@
 package com.mpdl.labcam.mvvm.ui.widget;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.TextView;
-
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.mpdl.labcam.R;
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem;
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity;
 import com.mpdl.labcam.treeviewbase.TreeNode;
 import com.mpdl.labcam.treeviewbase.TreeViewAdapter;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import me.jessyan.autosize.utils.AutoSizeUtils;
 import timber.log.Timber;
 
@@ -45,23 +38,19 @@ public class DirTreeViewPopup extends CustomPopupWindow {
         return dirTreeViewBuilder.curItemHolder;
     }
 
+    public void release(){
+        dirTreeViewBuilder.release();
+        dirTreeViewBuilder = null;
+    }
     @Override
     public void show() {
         if (dirTreeViewBuilder.repoName == null){
             dirTreeViewBuilder.tvDirPath.setText(R.string.keeper);
         }
         if (dirTreeViewBuilder.mDirTreeViewListener != null){
-            dirTreeViewBuilder.mDirTreeViewListener.onItemClick(null);
+            dirTreeViewBuilder.mDirTreeViewListener.onItemClick(dirTreeViewBuilder.rootNode);
         }
         super.show();
-    }
-
-    @Override
-    public void dismiss() {
-        super.dismiss();
-        dirTreeViewBuilder.curTreeNode = null;
-        dirTreeViewBuilder.repoName = null;
-        dirTreeViewBuilder.nodes.clear();
     }
 
     public DirTreeViewPopup setDirTreeViewListener(DirTreeViewListener listener){
@@ -70,35 +59,35 @@ public class DirTreeViewPopup extends CustomPopupWindow {
     }
 
     public void setData(TreeNode node,List<KeeperDirItem> data) {
-        if (data == null || data.isEmpty()){
+        if (data == null){
+            return;
+        }
+        if (data.isEmpty()){
+//            Toast.makeText(dirTreeViewBuilder.context,"No subdirectories",Toast.LENGTH_SHORT).show();
             return;
         }
         Timber.e("setData TreeNode:"+node +"  data.size:"+data.size());
-        if (node == null){
-            dirTreeViewBuilder.nodes.clear();
+        //防重复
+        if (!node.getChildList().isEmpty()){
+            return;
         }
         data = filterData(data);
         for (KeeperDirItem item: data){
-            if (dirTreeViewBuilder.isRepo(item)){
+            if (node.isRoot()){
                 item.setPath("/");
                 item.setRepoId(item.getId());
                 item.setRepoName(item.getName());
-                dirTreeViewBuilder.nodes.add(new TreeNode(item));
             }else {
-                if (node != null){
-                    Timber.e("setData addChild TreeNode");
-                    KeeperDirItem parentItem = (KeeperDirItem)node.getContent();
-                    item.setRepoId(parentItem.getRepoId());
-                    item.setRepoName(parentItem.getRepoName());
-                    item.setPath(parentItem.getPath()+item.getName()+"/");
-                    node.addChild(new TreeNode(item));
-                }
+                KeeperDirItem parentItem = (KeeperDirItem)node.getContent();
+                item.setRepoId(parentItem.getRepoId());
+                item.setRepoName(parentItem.getRepoName());
+                item.setPath(parentItem.getPath()+item.getName()+"/");
             }
+            node.addChild(new TreeNode(item));
         }
-        if (node == null){
-            dirTreeViewBuilder.mAdapter.refresh(dirTreeViewBuilder.nodes);
-        }else {
-            dirTreeViewBuilder.mAdapter.refreshChild(node,dirTreeViewBuilder.curItemHolder);
+        dirTreeViewBuilder.mAdapter.refreshChild(node,dirTreeViewBuilder.curItemHolder);
+        if (dirTreeViewBuilder.isRecoveryState){
+            dirTreeViewBuilder.recoveryState(node);
         }
     }
 
@@ -126,11 +115,12 @@ public class DirTreeViewPopup extends CustomPopupWindow {
         private TextView tvDirPath;
         private RecyclerView rvDir;
         private TreeViewAdapter mAdapter;
-        private List<TreeNode> nodes = new ArrayList<>();
+        private TreeNode rootNode;
         private DirTreeViewListener mDirTreeViewListener;
         private String repoName;
         private TreeNode curTreeNode;
         private RecyclerView.ViewHolder curItemHolder;
+        private boolean isRecoveryState = false;
 
         public DirTreeViewBuilder(Context context) {
             this.context = context;
@@ -142,6 +132,11 @@ public class DirTreeViewPopup extends CustomPopupWindow {
 
         public Builder contentView() {
             return contentView(LayoutInflater.from(context).inflate(R.layout.dialog_dir_tree_view,null));
+        }
+
+        public DirTreeViewBuilder isRecoveryState(boolean isRecoveryState){
+            this.isRecoveryState = isRecoveryState;
+            return this;
         }
 
         public Builder customListener() {
@@ -159,18 +154,20 @@ public class DirTreeViewPopup extends CustomPopupWindow {
                         }
                         MainActivity.Companion.setCurDirItem(item);
                         if (mDirTreeViewListener != null){
+                            MainActivity.Companion.setCurTreeNodes(curTreeNode.getContents());
                             mDirTreeViewListener.onConfirm(item);
                         }
                     }
                 });
-
+                rootNode = TreeNode.root();
+                curTreeNode = rootNode;
                 rvDir.setLayoutManager(new LinearLayoutManager(context));
                 //如果可以确定每个item的高度是固定的，设置这个选项可以提高性能
                 rvDir.setHasFixedSize(true);
                 DividerItemDecoration itemDecoration = new DividerItemDecoration(context,DividerItemDecoration.VERTICAL);
                 itemDecoration.setDrawable(context.getDrawable(R.drawable.shape_item_dir_line));
                 rvDir.addItemDecoration(itemDecoration);
-                mAdapter = new TreeViewAdapter(nodes, Arrays.asList(new DirNodeBinder()));
+                mAdapter = new TreeViewAdapter(rootNode.getChildList(), Arrays.asList(new DirNodeBinder()));
                 mAdapter.setPadding(AutoSizeUtils.dp2px(context,15));
                 mAdapter.setOnTreeNodeListener(new TreeViewAdapter.OnTreeNodeListener() {
                     @Override
@@ -239,6 +236,52 @@ public class DirTreeViewPopup extends CustomPopupWindow {
                 return false;
             }
             return "repo".equals(item.getType());
+        }
+
+        public void recoveryState(TreeNode treeNode){
+            if (MainActivity.Companion.getCurTreeNodes() == null){
+                return;
+            }
+            List<KeeperDirItem> contents = MainActivity.Companion.getCurTreeNodes();
+            for (int i = 0; i < treeNode.getChildList().size(); i++){
+                TreeNode<KeeperDirItem> node = (TreeNode<KeeperDirItem>) treeNode.getChildList().get(i);
+                if (node.getContent() == null){
+                    continue;
+                }
+                for (int j = 0; j < contents.size(); j++){
+                    KeeperDirItem content =  contents.get(j);
+                    if (content == null){
+                        continue;
+                    }
+                    if (node.getContent().getName().equals(content.getName())){
+                        if(mDirTreeViewListener != null){
+                            curTreeNode = node;
+                            if (isRepo(node.getContent())){
+                                repoName = node.getContent().getName();
+                                tvDirPath.setText(repoName+"/");
+                            }else {
+                                tvDirPath.setText(repoName+node.getContent().getPath());
+                            }
+                            Timber.d("KeeperDirItem: "+content.toString());
+                            if (mAdapter != null && mAdapter.getOnTreeNodeListener() != null){
+                                mAdapter.getOnTreeNodeListener().onToggle(node.isExpand(),curItemHolder);
+                            }
+                            mDirTreeViewListener.onItemClick(node);
+                            return;
+                        }
+                    }
+                    if (i == treeNode.getChildList().size()-1 && j == contents.size()-1){
+                        isRecoveryState = false;
+                    }
+                }
+            }
+        }
+
+        public void release(){
+            mDirTreeViewListener = null;
+            mAdapter = null;
+            curTreeNode = null;
+            curItemHolder = null;
         }
     }
 

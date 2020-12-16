@@ -201,7 +201,8 @@
         android:text="@string/create_account"
         android:textSize="12sp"
         android:textColor="@color/colorABC4C0"
-        app:layout_constraintLeft_toLeftOf="@id/iv_password"
+        android:layout_marginStart="40dp"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@id/et_password" />
 
 
@@ -214,9 +215,9 @@
         android:text="@string/forgot_password"
         android:textSize="12sp"
         android:textColor="@color/colorABC4C0"
-        app:layout_constraintRight_toRightOf="@id/et_password"
+        android:layout_marginEnd="40dp"
+        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/et_password" />
-
 
 
     <TextView

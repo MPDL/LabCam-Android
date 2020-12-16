@@ -14,6 +14,15 @@ ext{
 }
 ```
 
+###（V1.0.2 ）LabCam Testing Report on 10.12.2020
+- [x] 1. 相机界面横屏时 拍摄不变 只改变icon 方向
+- [x] 2. 重新打开应用程序时提示保存路径及上传方式
+- [x] 3. Specific use case: select the folder “test 1.1.1”(see the left screenshot) - tap Confirm - take photos - exit LabCam - delete the folder “test 1.1.1” in KEEPER - open LabCam again - pop up the alert - click Change - show the former layer of the folder tree (see the right screen shot).  4、添加上传成功通知
+- [x] 4. 添加上传成功通知
+- [x] 5. library 下的 folders 重复
+- [x] 6. library 打不开
+- [x] 7. 未显示共享的文件夹
+
 
 ###（V1.0.1 ）LabCam Testing Report on 03.12.2020
 - [x] ***1. Logo*** 

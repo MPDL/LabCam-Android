@@ -5,18 +5,23 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem;
 import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean;
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.simple.eventbus.EventBus;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,6 +54,7 @@ public class UploadFilesService extends Service {
     private ThreadPoolExecutor mVideoExecutor;
     private boolean uploadStart;
     private List<String> uploadingNameList = new ArrayList<>();
+    private String errorUrl;
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -74,11 +80,11 @@ public class UploadFilesService extends Service {
     }
 
     public synchronized void startUploadFile(){
-        Timber.d("startUploadFile uploadUrl: "+ MainActivity.Companion.getUploadUrl() +"  uploadStart:"+uploadStart);
-        if (TextUtils.isEmpty(MainActivity.Companion.getUploadUrl())){
-            return;
-        }
+        Timber.d( "uploadStart:"+uploadStart);
         if (uploadStart){
+            if (mFileSubscription != null){
+                mFileSubscription.request(1);
+            }
             return;
         }
         File fileDir = MainActivity.Companion.getOutputDirectory(this);
@@ -205,13 +211,14 @@ public class UploadFilesService extends Service {
                     }
 
                     //上传地址不存在
-                    if ("".equals(MainActivity.Companion.getUploadUrl())){
+                    if (TextUtils.isEmpty(MainActivity.Companion.getUploadUrl())){
                         Timber.e("上传 File: 上传地址不存在");
-                        getNextFile(file);
+                        //通知修改地址
+                        EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
+//                        getNextFile(file);
                         return;
                     }
 
-                    Timber.i("上传 File: "+file.getAbsolutePath());
                     uploadingNameList.add(file.getName());
                     MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(),
                             RequestBody.create(MediaType.parse("multipart/form-data"), file));
@@ -221,6 +228,8 @@ public class UploadFilesService extends Service {
                     if (saveDir != null){
                         path = saveDir.getPath();
                     }
+                    Timber.i("上传 File: "+file.getAbsolutePath());
+                    Timber.i("上传 Path : "+path);
                     try {
                         MainActivity.Companion.getRetrofit()
                                 .create(UploadApi.class)
@@ -232,20 +241,37 @@ public class UploadFilesService extends Service {
                                     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                                         if (response!=null && response.isSuccessful()){
                                             Timber.i("上传成功：");
+                                            errorUrl = null;
                                             //上传成功
                                             file.delete();
                                             getNextFile(file);
                                             EventBus.getDefault().post("", MainActivity.EVENT_UPLOAD_OVER);
                                         }else {
                                             //上传失败
-                                            Timber.i("上传失败 response："+response.message());
+                                            try {
+                                                String errorJson = response.errorBody().string();
+                                                Timber.e("上传失败 response："+errorJson);
+                                                JSONObject jsonObject = new JSONObject(errorJson);
+                                                String error = jsonObject.getString("error");
+                                                Timber.e("上传失败 error："+error);
+                                                if (error.contains("Parent dir doesn't exist.") || error.contains("Failed to get repo")){
+                                                    if (errorUrl == null || error.equals(MainActivity.Companion.getUploadUrl())){
+                                                        errorUrl = MainActivity.Companion.getUploadUrl();
+                                                        EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
+                                                    }
+                                                }else {
+                                                    Toast.makeText(UploadFilesService.this,"Upload failed: "+error,Toast.LENGTH_LONG).show();
+                                                }
+                                            } catch (IOException | JSONException e) {
+                                                e.printStackTrace();
+                                            }
                                             getNextFile(file);
                                         }
                                     }
 
                                     @Override
                                     public void onFailure(Call<ResponseBody> call, Throwable t) {
-                                        Timber.i("上传失败 t : "+t.getMessage());
+                                        Timber.e("上传失败 t : "+t.getMessage());
                                         getNextFile(file);
                                         t.printStackTrace();
                                     }

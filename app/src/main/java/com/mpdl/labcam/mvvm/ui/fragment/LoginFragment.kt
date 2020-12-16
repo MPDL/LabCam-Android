@@ -48,8 +48,7 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
     override fun initViewModel(): LoginViewModel = getViewModel()
     private lateinit var channelData: List<ChannelBean>
 
-    private lateinit var dirTreeViewPopup: DirTreeViewPopup
-    private var curTreeNode: TreeNode<KeeperDirItem>? = null
+    private var dirTreeViewPopup: DirTreeViewPopup? = null
     private var passwordStatus = false
 
     override fun initView(
@@ -87,40 +86,14 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
         }
 
-        dirTreeViewPopup = DirTreeViewPopup.builder(requireContext()).build().setDirTreeViewListener(object :
-            DirTreeViewPopup.DirTreeViewListener {
-            override fun onConfirm(item: KeeperDirItem?) {
-                if (item == null){
-                    showMessage("Please select a directory")
-                }else{
-                    mViewModel.getUploadLink(item)
-                }
-            }
-
-            override fun onItemClick(node: TreeNode<*>?) {
-                curTreeNode = node as TreeNode<KeeperDirItem>?
-                if (curTreeNode == null){
-                    getDir(null)
-                }
-                curTreeNode?.let {
-                    if (it.isLeaf){
-                        getDir(curTreeNode)
-                    }
-                }
-            }
-
-        })
         setListener()
 
         observe(mViewModel.getDirDialogState()){state->
             state?.let{
                 dirTreeViewPopup?.let {
-                    if (curTreeNode == null){
-                        it.setData(state.node, state.list)
-                    }else{
-                        if (curTreeNode?.content?.id == state.node?.content?.id){
-                            it.setData(curTreeNode, state.list)
-                        }
+                    val curItem = dirTreeViewPopup?.curTreeNode as TreeNode<KeeperDirItem>
+                    if (curItem.content?.id == state.node?.content?.id){
+                        it.setData(curItem, state.list)
                     }
                 }
             }
@@ -141,11 +114,11 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
         observe(mViewModel.getUiState()){
             if (it.loginSuccess){
-                dirTreeViewPopup.show()
+                showDirTreeViewPopup()
             }
 
             if (it.showFileSelectorDialog){
-                dirTreeViewPopup?.show()
+                showDirTreeViewPopup()
             }
         }
 
@@ -156,9 +129,9 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
     }
 
-    private fun getDir(node: TreeNode<KeeperDirItem>?){
-        if (node == null){
-            mViewModel.getRepos()
+    private fun getDir(node: TreeNode<KeeperDirItem>){
+        if (node.isRoot){
+            mViewModel.getRepos(node)
         }else {
             mViewModel.getDir(node = node, dirItem = node.content)
         }
@@ -223,6 +196,30 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
         }else if (TextUtils.isEmpty(et_account.text.toString()) || TextUtils.isEmpty(et_password.text.toString())){
             btn_login.setBackgroundResource(R.drawable.shape_login_btn_off)
         }
+    }
+
+    private fun showDirTreeViewPopup(){
+        if(dirTreeViewPopup != null){
+            dirTreeViewPopup?.release();
+            dirTreeViewPopup = null
+        }
+        dirTreeViewPopup = DirTreeViewPopup.builder(requireContext()).build().setDirTreeViewListener(object :
+            DirTreeViewPopup.DirTreeViewListener {
+            override fun onConfirm(item: KeeperDirItem?) {
+                if (item == null){
+                    showMessage("Please select a directory")
+                }else{
+                    mViewModel.getUploadLink(item)
+                }
+            }
+
+            override fun onItemClick(node: TreeNode<*>) {
+                if (node.childList.isEmpty()){
+                    getDir(node as TreeNode<KeeperDirItem>)
+                }
+            }
+        })
+        dirTreeViewPopup?.show()
     }
 
     private var progressDialog: ProgressDialog? = null
