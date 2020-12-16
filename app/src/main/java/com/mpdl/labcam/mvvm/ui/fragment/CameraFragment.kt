@@ -8,7 +8,6 @@ import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.hardware.Sensor
@@ -20,6 +19,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.text.TextUtils
 import android.util.DisplayMetrics
 import android.view.*
 import android.view.OrientationEventListener.ORIENTATION_UNKNOWN
@@ -93,7 +93,6 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
     private var firstInit = true
 
-
     private var dirTreeViewPopup: DirTreeViewPopup? = null
     private var changeDirDialog: AlertDialog? = null
 
@@ -157,7 +156,6 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         if (MainActivity.galleryList.size > 0){
             setGalleryThumbnail(MainActivity.galleryList[0])
         }
-
 
         observe(mViewModel.getDirDialogState()){state->
             state?.let{
@@ -230,7 +228,18 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             setOcrStatus()
         }
 
-        mSensorManager = context!!.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+/*        sv_ocr.setOnTouchListener { view, motionEvent ->
+            var isMove = false
+            if(motionEvent.action == MotionEvent.ACTION_MOVE){
+                isMove = true
+            }
+            if(!isMove){
+                viewFinder.onTouch(view,motionEvent)
+            }
+            false
+        }*/
+
+        mSensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
         mSensorManager?.registerListener(this , mSensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME)
 
     }
@@ -428,10 +437,16 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                         lifecycleScope.launch(Dispatchers.IO) {
                             var bitmap:Bitmap? = BitmapFactory.decodeFile(savedUri.toFile().absolutePath)
                             bitmap?.let {
-                                if (MainActivity.openOcr){
-                                    imageProcessor!!.processBitmap(it,savedUri.toFile().name ,graphicOverlay)
-                                }
+//                                if (MainActivity.openOcr){
+//                                    imageProcessor!!.processBitmap(it,savedUri.toFile().name ,graphicOverlay)
+//                                }
                                 saveBitmap(requireContext(),it)
+                            }
+                            if(MainActivity.openOcr){
+                                savedUri.toFile().name?.let {
+                                    Timber.d("savedUri name : $it")
+                                    saveOcrFile(it)
+                                }
                             }
                         }
                         Timber.d( "Photo capture succeeded: $savedUri")
@@ -478,6 +493,13 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
     }
 
+    private fun saveOcrFile(file:String){
+        MainActivity.octText?.let {
+            MainActivity.createText(MainActivity.getOutputDirectory(requireContext()),file)
+                .writeText(it)
+        }
+    }
+
     private fun setGalleryThumbnail(uri: Uri) {
         btn_photo_view.post {
             Glide.with(this)
@@ -490,10 +512,12 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
     private fun setOcrStatus() {
         Timber.d("openOcr: ${MainActivity.openOcr}")
+        updateIcon()
         if (MainActivity.openOcr){
             iv_ocr.setImageResource(R.mipmap.ic_ocr_on)
         }else{
             iv_ocr.setImageResource(R.mipmap.ic_ocr_off)
+            ll_ocr.visibility = View.GONE
         }
         try {
             bindAnalysisUseCase()
@@ -670,11 +694,12 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                 .TipsBuilder(requireContext())
                 .setTitle("Upload failed")
                 .setMessage("Target folder does not exist, please select another one.")
-                .setPositiveButton("CHANGE") { dialog, p1 ->
+                .setPositiveButton("CHANGE") { dialog, _ ->
                     dialog?.dismiss()
                     showDirTreeViewPopup(true)
                 }
-                .setCancelable(false).create()
+                .create()
+            changeDirDialog?.setCancelable(false)
             changeDirDialog?.show()
         }
     }
@@ -717,12 +742,17 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             iv_ocr.rotation = 0f
             iv_menu.rotation = 0f
 
+            sv_ocr.rotation = 0f
+            sv_ocr.layoutParams = LinearLayout.LayoutParams(preview_view.width,LinearLayout.LayoutParams.WRAP_CONTENT)
         }else{
             btn_camera_switch.rotation = 90f
             btn_photo_view.rotation = 90f
             iv_flash.rotation = 90f
             iv_ocr.rotation = 90f
             iv_menu.rotation = 90f
+
+            sv_ocr.rotation = 90f
+            sv_ocr.layoutParams = LinearLayout.LayoutParams(preview_view.width,preview_view.width)
         }
     }
 
@@ -779,6 +809,15 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         // value
         // Don't trust the angle if the magnitude is small compared to the y
         // value
+
+        /*
+        OCR test
+        var ocrText = "Don't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y "
+        var ocrText = "values: $values \norientation: $orientation \nX; $X \nY; $Y \nZ; $Z "
+        MainActivity.octText = ocrText
+        changeOcrText(ocrText)
+        */
+
         if (magnitude * 4 >= Z * Z) {
             // 屏幕旋转时
             val OneEightyOverPi = 57.29577957855f
@@ -849,6 +888,18 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     @Subscriber(tag = MainActivity.EVENT_CHANGE_UPLOAD_PATH)
     fun changeUploadPath(msg:String){
         showChangeDir()
+    }
+
+    @Subscriber(tag = MainActivity.EVENT_CHANGE_OCR_TEXT)
+    fun changeOcrText(text:String){
+        if (TextUtils.isEmpty(text)){
+            ll_ocr.visibility = View.GONE
+        }else if(MainActivity.openOcr){
+            ll_ocr.visibility = View.VISIBLE
+            if (text != tv_ocr.text){
+                tv_ocr.text = text
+            }
+        }
     }
 
 

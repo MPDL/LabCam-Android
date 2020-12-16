@@ -15,9 +15,9 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_marginStart="15dp"
-            android:paddingTop="5dp"
             android:gravity="center_vertical"
             android:paddingStart="10dp"
+            android:paddingTop="5dp"
             android:paddingEnd="10dp"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -32,36 +32,38 @@
 
         <LinearLayout
             android:id="@+id/btn_flash"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
             android:layout_marginEnd="15dp"
-            android:paddingEnd="10dp"
-            android:paddingTop="5dp"
-            android:paddingStart="8dp"
             android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="10dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent">
+            app:layout_constraintTop_toTopOf="parent">
+
             <ImageView
                 android:id="@+id/iv_flash"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@mipmap/ic_flash_auto"/>
+                android:src="@mipmap/ic_flash_auto" />
         </LinearLayout>
 
 
         <LinearLayout
             android:id="@+id/btn_ocr"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="10dp"
+            android:gravity="center"
+            android:paddingStart="5dp"
             android:paddingTop="5dp"
+            android:paddingEnd="5dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toLeftOf="@id/btn_flash"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginEnd="10dp"
-            android:paddingStart="5dp"
-            android:paddingEnd="5dp"
-            android:gravity="center"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent">
+            app:layout_constraintTop_toTopOf="parent">
+
             <ImageView
                 android:id="@+id/iv_ocr"
                 android:layout_width="32dp"
@@ -88,6 +90,35 @@
         app:layout_constraintLeft_toLeftOf="@id/preview_view"
         app:layout_constraintRight_toRightOf="@id/preview_view"
         app:layout_constraintTop_toTopOf="@id/preview_view" />
+
+    <LinearLayout
+        android:id="@+id/ll_ocr"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="40dp"
+        android:layout_marginBottom="100dp"
+        android:clickable="false"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ScrollView
+            android:id="@+id/sv_ocr"
+            android:clickable="false"
+            android:background="#76000000"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <TextView
+                android:id="@+id/tv_ocr"
+                android:clickable="false"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="5dp"
+                android:padding="15dp"
+                android:scrollbars="vertical"
+                android:textColor="@color/colorWhite"
+                android:textSize="12sp" />
+        </ScrollView>
+    </LinearLayout>
 
 
     <ImageButton

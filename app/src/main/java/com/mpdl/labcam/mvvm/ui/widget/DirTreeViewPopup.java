@@ -3,8 +3,6 @@ package com.mpdl.labcam.mvvm.ui.widget;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;

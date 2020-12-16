@@ -32,7 +32,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-class MainActivity: BaseActivity<MainViewModel>()  {
+class MainActivity: BaseActivity<MainViewModel>() {
     override fun initViewModel(): MainViewModel = getViewModel()
 
     override fun initView(savedInstanceState: Bundle?): Int = R.layout.activity_main
@@ -77,6 +77,7 @@ class MainActivity: BaseActivity<MainViewModel>()  {
     companion object {
         const val EVENT_UPLOAD_OVER:String = "event_upload_over"
         const val EVENT_CHANGE_UPLOAD_PATH:String = "event_change_upload_path"
+        const val EVENT_CHANGE_OCR_TEXT:String = "event_change_ocr_text"
         private const val SP_UPLOAD_URL = "sp_upload_url"
         private const val SP_TOKEN = "sp_token"
         private const val SP_SAVE_DIRECTORY = "sp_save_directory"
@@ -89,6 +90,7 @@ class MainActivity: BaseActivity<MainViewModel>()  {
         const val VIDEO_EXTENSION = ".mp4"
         const val TEXT_EXTENSION = ".md"
 
+        var octText = ""
 
         var context: Context? = null
 

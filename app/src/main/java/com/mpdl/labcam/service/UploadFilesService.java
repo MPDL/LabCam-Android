@@ -254,13 +254,13 @@ public class UploadFilesService extends Service {
                                                 JSONObject jsonObject = new JSONObject(errorJson);
                                                 String error = jsonObject.getString("error");
                                                 Timber.e("上传失败 error："+error);
-                                                if (error.contains("Parent dir doesn't exist.")){
+                                                if (error.contains("Parent dir doesn't exist.") || error.contains("Failed to get repo")){
                                                     if (errorUrl == null || error.equals(MainActivity.Companion.getUploadUrl())){
                                                         errorUrl = MainActivity.Companion.getUploadUrl();
                                                         EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
                                                     }
                                                 }else {
-                                                    Toast.makeText(UploadFilesService.this,error,Toast.LENGTH_LONG).show();
+                                                    Toast.makeText(UploadFilesService.this,"Upload failed: "+error,Toast.LENGTH_LONG).show();
                                                 }
                                             } catch (IOException | JSONException e) {
                                                 e.printStackTrace();
