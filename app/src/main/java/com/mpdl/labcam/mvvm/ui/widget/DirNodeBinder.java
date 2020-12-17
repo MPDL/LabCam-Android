@@ -24,7 +24,7 @@ public class DirNodeBinder extends TreeViewBinder<DirNodeBinder.ViewHolder> {
     public void bindView(ViewHolder holder, int position, TreeNode node) {
         KeeperDirItem dirNode = (KeeperDirItem) node.getContent();
         holder.tvDirName.setText(dirNode.getName());
-        if ("repo".equals(dirNode.getType())){
+        if (!"dir".equals(dirNode.getType())){
             holder.ivDirImg.setImageResource(R.mipmap.ic_repo);
         }else {
             if (node.isExpand()){

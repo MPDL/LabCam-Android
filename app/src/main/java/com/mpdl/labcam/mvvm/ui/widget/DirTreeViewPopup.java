@@ -98,9 +98,12 @@ public class DirTreeViewPopup extends CustomPopupWindow {
      */
     private List<KeeperDirItem> filterData(List<KeeperDirItem> data){
         List<KeeperDirItem> filterData = new ArrayList<>();
+        //TODO: 确保id唯一，重复repo只取第一次
+        List<String> repoIds = new ArrayList<>();
         for (KeeperDirItem bean: data){
-            if ("rw".equals(bean.getPermission())){
+            if ("rw".equals(bean.getPermission()) && !repoIds.contains(bean.getId())){
                 filterData.add(bean);
+                repoIds.add(bean.getId());
             }
         }
         return filterData;
