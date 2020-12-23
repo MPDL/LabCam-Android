@@ -1,9 +1,18 @@
 package com.mpdl.labcam.service;
 
 import android.app.Service;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
+import android.provider.MediaStore;
+import android.text.BidiFormatter;
 import android.text.TextUtils;
 import android.widget.Toast;
 
@@ -21,7 +30,9 @@ import org.simple.eventbus.EventBus;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -177,6 +188,44 @@ public class UploadFilesService extends Service {
         return readStr;
     }
 
+
+    private void saveBitmap(File file) {
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DESCRIPTION, "This is an image");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "IMG_"+System.currentTimeMillis()+".jpg");
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/JPEG");
+        values.put(MediaStore.Images.Media.TITLE, System.currentTimeMillis() + ".jpg");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/Camera");
+        }
+        Uri external  = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        ContentResolver resolver  = this.getContentResolver();
+        Uri insertUri = resolver.insert(external, values);
+        Timber.d("saveBitmap insertUri:$insertUri");
+        if (insertUri != null){
+            OutputStream os = null;
+            try {
+                os = resolver.openOutputStream(insertUri);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, os);
+                MainActivity.Companion.getGalleryMap().put(file.getName(),insertUri);
+                file.delete();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }finally {
+                try {
+                    if (os != null){
+                        os.flush();
+                        os.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                bitmap.recycle();
+            }
+        }
+    }
+
     class UploadFileRunnable implements Runnable{
         private File file;
         public UploadFileRunnable(File file){
@@ -243,7 +292,7 @@ public class UploadFilesService extends Service {
                                             Timber.i("上传成功：");
                                             errorUrl = null;
                                             //上传成功
-                                            file.delete();
+                                            saveBitmap(file);
                                             getNextFile(file);
                                             EventBus.getDefault().post("", MainActivity.EVENT_UPLOAD_OVER);
                                         }else {

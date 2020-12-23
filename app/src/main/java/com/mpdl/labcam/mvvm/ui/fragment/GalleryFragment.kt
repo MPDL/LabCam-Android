@@ -28,7 +28,7 @@ class GalleryFragment: BaseFragment<CameraViewModel>()  {
         savedInstanceState: Bundle?
     ): View = inflater.inflate(R.layout.fragment_gallery,container,false)
 
-    private lateinit var mediaList: MutableList<Uri>
+    private val mediaList: MutableList<Uri> = mutableListOf()
 
     /** Adapter class used to present a fragment containing one photo or video as a page */
     inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
@@ -43,19 +43,19 @@ class GalleryFragment: BaseFragment<CameraViewModel>()  {
         retainInstance = true
         // Get root directory of media from navigation arguments
 //        val rootDirectory = File(args.rootDirectory)
-        mediaList = MainActivity.galleryList
+
+        mediaList.addAll(MainActivity.galleryList)
+        mediaList.addAll(MainActivity.galleryMap.values)
         Timber.d("mediaList: $mediaList")
         // Populate the ViewPager and implement a cache of two media items
         photo_view_pager.apply {
             offscreenPageLimit = 2
             adapter = MediaPagerAdapter(childFragmentManager)
         }
-
         // Handle back button press
         back_button.setOnClickListener {
             Navigation.findNavController(requireActivity(), R.id.my_nav_host_fragment).popBackStack()
         }
-
     }
 
 }

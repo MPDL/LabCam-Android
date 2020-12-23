@@ -31,6 +31,7 @@ import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.HashMap
 
 class MainActivity: BaseActivity<MainViewModel>() {
     override fun initViewModel(): MainViewModel = getViewModel()
@@ -43,6 +44,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
         Timber.d("okHttpClient $okHttpClient")
 
         galleryList.clear()
+        galleryMap.clear()
 
         val filter = IntentFilter()
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE")
@@ -105,6 +107,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
         private var retrofit: Retrofit? = null
 
         val galleryList :MutableList<Uri> = mutableListOf()
+        val galleryMap :HashMap<String,Uri> = HashMap()
 
         var openOcr:Boolean = false
 
@@ -215,6 +218,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
 
         fun loginOut(){
             galleryList.clear()
+            galleryMap.clear()
             setToken("")
             setUploadUrl("")
             setCurDirItem(null)

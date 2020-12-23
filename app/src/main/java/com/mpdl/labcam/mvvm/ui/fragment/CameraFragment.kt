@@ -8,6 +8,7 @@ import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.hardware.Sensor
@@ -156,6 +157,9 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         if (MainActivity.galleryList.size > 0){
             setGalleryThumbnail(MainActivity.galleryList[0])
         }
+        if (MainActivity.galleryMap.size > 0){
+            setGalleryThumbnail(MainActivity.galleryMap.values.first())
+        }
 
         observe(mViewModel.getDirDialogState()){state->
             state?.let{
@@ -208,7 +212,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         }
 
         btn_photo_view.setOnClickListener {
-            if (MainActivity.galleryList.size > 0) {
+            if (MainActivity.galleryList.size > 0 || MainActivity.galleryMap.size > 0) {
                 mViewModel.cleanUiState()
                 Navigation.findNavController(requireView())
                     .navigate(CameraFragmentDirections.actionCameraFragmentToGalleryFragment())
@@ -434,7 +438,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
                         setGalleryThumbnail(savedUri)
 
-                        lifecycleScope.launch(Dispatchers.IO) {
+                        requireContext().sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, savedUri))
+                        MainActivity.galleryMap[photoFile.name] = savedUri
+
+                        /*lifecycleScope.launch(Dispatchers.IO) {
                             var bitmap:Bitmap? = BitmapFactory.decodeFile(savedUri.toFile().absolutePath)
                             bitmap?.let {
 //                                if (MainActivity.openOcr){
@@ -448,7 +455,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                                     saveOcrFile(it)
                                 }
                             }
-                        }
+                        }*/
                         Timber.d( "Photo capture succeeded: $savedUri")
                         MainActivity.startUpload()
                     }
