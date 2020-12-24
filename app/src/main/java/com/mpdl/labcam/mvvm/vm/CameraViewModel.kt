@@ -6,8 +6,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.mpdl.labcam.mvvm.repository.LoginRepository
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
-import com.mpdl.labcam.mvvm.repository.bean.KeeperDirectoryBean
-import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
 import com.mpdl.labcam.mvvm.vm.uistate.CameraUiState
 import com.mpdl.labcam.mvvm.vm.uistate.DirTreeViewDialogState
@@ -75,6 +73,7 @@ class CameraViewModel(application: Application,
         },{
             Timber.d("uploadUrl: $it")
             if (!TextUtils.isEmpty(it)){
+                MainActivity.setCurDirItem(item)
                 MainActivity.setUploadUrl(it)
                 MainActivity.startUpload()
                 cameraUiState.postValue(CameraUiState(uploadUrlSuc = true))
