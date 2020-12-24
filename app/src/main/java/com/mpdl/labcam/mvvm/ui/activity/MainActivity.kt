@@ -1,28 +1,30 @@
 package com.mpdl.labcam.mvvm.ui.activity
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.*
+import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.NetworkInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.SystemClock
 import android.text.TextUtils
+import androidx.core.app.NotificationCompat
 import androidx.navigation.Navigation
-import com.mpdl.labcam.BuildConfig
-import com.mpdl.labcam.R
-import com.mpdl.labcam.receiver.NetworkConnectChangedReceiver
-import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean
-import com.mpdl.labcam.service.UploadFilesService
-import com.mpdl.labcam.mvvm.vm.MainViewModel
-import com.mpdl.mvvm.base.BaseActivity
-import com.mpdl.mvvm.common.Preference
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import com.mpdl.labcam.BuildConfig
+import com.mpdl.labcam.R
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
-import com.mpdl.labcam.treeviewbase.TreeNode
+import com.mpdl.labcam.mvvm.vm.MainViewModel
+import com.mpdl.labcam.receiver.NetworkConnectChangedReceiver
+import com.mpdl.labcam.service.UploadFilesService
+import com.mpdl.mvvm.base.BaseActivity
+import com.mpdl.mvvm.common.Preference
 import okhttp3.OkHttpClient
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 import retrofit2.Retrofit
@@ -41,6 +43,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
         context = applicationContext
         okHttpClient = mViewModel.okHttpClient
         Timber.d("okHttpClient $okHttpClient")
+        isResume = true
 
         galleryList.clear()
 
@@ -61,6 +64,16 @@ class MainActivity: BaseActivity<MainViewModel>() {
         }, Context.BIND_AUTO_CREATE)
     }
 
+    override fun onResume() {
+        super.onResume()
+        isResume = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isResume = false
+    }
+
     override fun onBackPressed() {
         val curLabel = Navigation.findNavController(this,R.id.my_nav_host_fragment)
             .currentDestination!!.label
@@ -75,7 +88,6 @@ class MainActivity: BaseActivity<MainViewModel>() {
     }
 
     companion object {
-        const val EVENT_UPLOAD_OVER:String = "event_upload_over"
         const val EVENT_CHANGE_UPLOAD_PATH:String = "event_change_upload_path"
         const val EVENT_CHANGE_OCR_TEXT:String = "event_change_ocr_text"
         private const val SP_UPLOAD_URL = "sp_upload_url"
@@ -107,6 +119,8 @@ class MainActivity: BaseActivity<MainViewModel>() {
         val galleryList :MutableList<Uri> = mutableListOf()
 
         var openOcr:Boolean = false
+
+        var isResume = false
 
         /** Helper function used to create a timestamped file */
         fun createFile(baseFolder: File, format: String, extension: String) =
@@ -197,7 +211,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
 
         fun setCurTreeNodes(curTreeNodes: List<KeeperDirItem>?){
             this.curTreeNodes = curTreeNodes
-            val json = Gson().toJson(curTreeNodes);
+            val json = Gson().toJson(curTreeNodes)
             Timber.e("curTreeNodes $json")
             Preference.preferences.edit().putString(SP_TREE_NOTES,json).apply()
         }
@@ -279,6 +293,24 @@ class MainActivity: BaseActivity<MainViewModel>() {
             }catch (e:Exception){
                 false
             }
+        }
+
+        fun sendNotification(context: Context){
+            val mNotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channelId = "message"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val mChannel = NotificationChannel(channelId, BuildConfig.BUILD_TYPE, NotificationManager.IMPORTANCE_DEFAULT)
+                mChannel.description = "upload success notify"
+                mChannel.enableLights(true)//是否显示通知指示灯
+                mChannel.enableVibration(true)//是否振动
+                mNotificationManager.createNotificationChannel(mChannel)//创建通知渠道
+            }
+            var mBuilder = NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(R.mipmap.ic_launcher)//小图标
+                .setLargeIcon(BitmapFactory.decodeResource(context.resources,R.mipmap.ic_launcher))
+                .setContentTitle("LabCam")
+                .setContentText("Upload Completed")
+            mNotificationManager.notify(SystemClock.uptimeMillis().toInt(), mBuilder.build())
         }
 
     }

@@ -77,4 +77,10 @@ class LaunchFragment: BaseFragment<LaunchViewModel>() {
             }
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        timerOut = false
+        timer.cancel()
+    }
+
 }
