@@ -91,6 +91,7 @@ class LoginViewModel(application: Application,
         },{
             Timber.d("uploadUrl: $it")
             if (!TextUtils.isEmpty(it)){
+                MainActivity.setCurDirItem(item)
                 MainActivity.setUploadUrl(it)
                 uploadFileUrl.postValue(it)
                 loginUiState.postValue(LoginUiState())

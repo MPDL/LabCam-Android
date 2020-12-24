@@ -1,13 +1,10 @@
 package com.mpdl.labcam.mvvm.ui.fragment
 
 import android.annotation.SuppressLint
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.ProgressDialog
 import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
-import android.content.Context.NOTIFICATION_SERVICE
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.hardware.Sensor
@@ -27,7 +24,6 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
 import androidx.lifecycle.lifecycleScope
@@ -36,7 +32,6 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.google.mlkit.common.MlKitException
-import com.mpdl.labcam.BuildConfig
 import com.mpdl.labcam.R
 import com.mpdl.labcam.detecort.TextRecognitionProcessor
 import com.mpdl.labcam.detecort.VisionImageProcessor
@@ -225,6 +220,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
         btn_ocr.setOnClickListener {
             MainActivity.openOcr = !MainActivity.openOcr
+            MainActivity.octText = ""
             setOcrStatus()
         }
 
@@ -366,7 +362,12 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             }
 
             val builder = ImageAnalysis.Builder()
-            builder.setTargetRotation(viewFinder.display.rotation)
+            Timber.e("viewFinder.display.rotation: ${viewFinder.display.rotation}")
+            if (isPortrait){
+                builder.setTargetRotation(viewFinder.display.rotation)
+            }else{
+                builder.setTargetRotation(Surface.ROTATION_90)
+            }
             analysisUseCase = builder.build()
             needUpdateGraphicOverlayImageSourceInfo = true
             analysisUseCase?.setAnalyzer(ContextCompat.getMainExecutor(requireContext()),
@@ -515,13 +516,13 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         updateIcon()
         if (MainActivity.openOcr){
             iv_ocr.setImageResource(R.mipmap.ic_ocr_on)
+            try {
+                bindAnalysisUseCase()
+            }catch (e:java.lang.Exception){}
         }else{
             iv_ocr.setImageResource(R.mipmap.ic_ocr_off)
             ll_ocr.visibility = View.GONE
         }
-        try {
-            bindAnalysisUseCase()
-        }catch (e:java.lang.Exception){}
     }
 
     private fun clickFlash(){
@@ -592,6 +593,8 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                         if (MainActivity.isNetworkConnected()){
                             mViewModel.getUploadLink(item)
                         }else{
+                            MainActivity.setCurDirItem(item)
+                            MainActivity.setUploadUrl("")
                             tvDir?.text = item.repoName+item.path
                             dirTreeViewPopup?.dismiss()
                         }
@@ -754,6 +757,11 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             sv_ocr.rotation = 90f
             sv_ocr.layoutParams = LinearLayout.LayoutParams(preview_view.width,preview_view.width)
         }
+
+        try {
+            bindAnalysisUseCase()
+        }catch (e:Exception){}
+
     }
 
 /*    override fun onConfigurationChanged(newConfig: Configuration) {
@@ -810,13 +818,16 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         // Don't trust the angle if the magnitude is small compared to the y
         // value
 
+
         /*
-        OCR test
-        var ocrText = "Don't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y "
-        var ocrText = "values: $values \norientation: $orientation \nX; $X \nY; $Y \nZ; $Z "
-        MainActivity.octText = ocrText
-        changeOcrText(ocrText)
-        */
+        //OCR test
+        //var ocrText = "Don't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y "
+        var ocrText = "v: $values \norientation: $orientation \nX; $X \nY; $Y \nZ; $Z "
+        Timber.e("jaccard ${TextRecognitionProcessor.jaccard(MainActivity.octText,ocrText)}")
+        if(TextRecognitionProcessor.jaccard(MainActivity.octText,ocrText) < 0.8 && MainActivity.openOcr){
+            MainActivity.octText = ocrText
+            changeOcrText(ocrText)
+        }*/
 
         if (magnitude * 4 >= Z * Z) {
             // 屏幕旋转时
@@ -854,35 +865,6 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
     private fun showUploadInfo(saveDir: KeeperDirItem){
         Toast.makeText(requireContext(),"Upload dir: "+saveDir.repoName+saveDir.path +"\n"+"Upload via:"+resources.getStringArray(R.array.upload_network)[MainActivity.getUploadNetwork()],Toast.LENGTH_LONG).show()
-    }
-
-    private fun sendNotification(){
-        val mNotificationManager = requireContext().getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "message"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val mChannel = NotificationChannel(channelId, BuildConfig.BUILD_TYPE, NotificationManager.IMPORTANCE_DEFAULT);
-            mChannel.description = "upload success notify"
-            mChannel.enableLights(true)//是否显示通知指示灯
-            mChannel.enableVibration(true)//是否振动
-            mNotificationManager.createNotificationChannel(mChannel);//创建通知渠道
-        }
-        var mBuilder = NotificationCompat.Builder(requireContext(), channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)//小图标
-            .setLargeIcon(BitmapFactory.decodeResource(resources,R.mipmap.ic_launcher))
-            .setContentTitle("LabCam")
-            .setContentText("image upload completed")
-        mNotificationManager.notify(id, mBuilder.build())
-    }
-
-
-    @Subscriber(tag = MainActivity.EVENT_UPLOAD_OVER)
-    fun uploadOver(msg:String){
-        Timber.d("单张图片上传 完成通知: $isResumed")
-        if (outputDirectory.listFiles().isEmpty()){
-            if (!isResumed){
-                sendNotification()
-            }
-        }
     }
 
     @Subscriber(tag = MainActivity.EVENT_CHANGE_UPLOAD_PATH)

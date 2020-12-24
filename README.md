@@ -14,6 +14,18 @@ ext{
 }
 ```
 
+
+
+###（V1.0.4 ）LabCam Testing Report on 22.12.2020
+- [x] 1. push notification的措辞需要修改为：Upload Completed
+- [ ] 2. 一个没有push notification（测试机器为三星平板）的情况：关闭wifi-照相-退出app但不kill - 打开wifi - 照片随后上传成功但没有收到notification；
+- [ ] 3. OCR功能的bug：当用横屏模式扫描横着放的书时，OCR无法识别文字。但将书竖着放用横屏模式扫描时，扫描成功；
+- [x] 4. 测试过程中收到一个“Upload failed: Permission denied”的错误报告；
+- [ ] 5. OCR功能的优化：
+        1）扫描文档时，让文字保持不动3秒。在目前的版本中，被扫描的内容一直在动。
+        2）点击快门键后，自动release掉被扫描的文字，以提醒用户这一内容已经扫描完毕。
+        3）UI方面，让显示text的place holder（灰色部分）保持大小不变。即不需要根据text的长短来变化尺寸。
+
 ###（V1.0.2 ）LabCam Testing Report on 10.12.2020
 - [x] 1. 相机界面横屏时 拍摄不变 只改变icon 方向
 - [x] 2. 重新打开应用程序时提示保存路径及上传方式

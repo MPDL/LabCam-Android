@@ -6,19 +6,14 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.text.TextUtils;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
-
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem;
-import com.mpdl.labcam.mvvm.repository.bean.SaveDirectoryBean;
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.simple.eventbus.EventBus;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -30,8 +25,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
-import io.reactivex.Observer;
-import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -42,9 +35,12 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import retrofit2.http.GET;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
+import retrofit2.http.Path;
+import retrofit2.http.Query;
 import retrofit2.http.Url;
 import timber.log.Timber;
 
@@ -214,8 +210,33 @@ public class UploadFilesService extends Service {
                     if (TextUtils.isEmpty(MainActivity.Companion.getUploadUrl())){
                         Timber.e("上传 File: 上传地址不存在");
                         //通知修改地址
-                        EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
-//                        getNextFile(file);
+                        KeeperDirItem item = MainActivity.Companion.getCurDirItem();
+                        if (item == null){
+                            EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
+                        }else {
+                            MainActivity.Companion.getRetrofit()
+                                    .create(UploadApi.class)
+                                    .getUploadLink(item.getRepoId(),item.getPath())
+                                    .enqueue(new Callback<String>() {
+                                        @Override
+                                        public void onResponse(Call<String> call, Response<String> response) {
+                                            if (response!=null && response.isSuccessful()){
+                                                String uploadUrl = response.body();
+                                                Timber.d("uploadUrl %s",uploadUrl);
+                                                if (!TextUtils.isEmpty(uploadUrl)){
+                                                    MainActivity.Companion.setUploadUrl(uploadUrl);
+                                                }
+                                            }
+                                            getNextFile(file);
+                                        }
+
+                                        @Override
+                                        public void onFailure(Call<String> call, Throwable t) {
+                                            getNextFile(file);
+                                        }
+                                    });
+
+                        }
                         return;
                     }
 
@@ -245,7 +266,11 @@ public class UploadFilesService extends Service {
                                             //上传成功
                                             file.delete();
                                             getNextFile(file);
-                                            EventBus.getDefault().post("", MainActivity.EVENT_UPLOAD_OVER);
+                                            //发送通知
+                                            if (!MainActivity.Companion.isResume() &&
+                                                    MainActivity.Companion.getOutputDirectory(UploadFilesService.this).listFiles().length == 0){
+                                                MainActivity.Companion.sendNotification(UploadFilesService.this);
+                                            }
                                         }else {
                                             //上传失败
                                             try {
@@ -260,7 +285,7 @@ public class UploadFilesService extends Service {
                                                         EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
                                                     }
                                                 }else {
-                                                    Toast.makeText(UploadFilesService.this,"Upload failed: "+error,Toast.LENGTH_LONG).show();
+                                                    Toast.makeText(UploadFilesService.this,"Upload failed: "+error,Toast.LENGTH_SHORT).show();
                                                 }
                                             } catch (IOException | JSONException e) {
                                                 e.printStackTrace();
@@ -309,6 +334,11 @@ public class UploadFilesService extends Service {
                                       @Part("parent_dir")RequestBody parent_dir ,
                                       @Part("replace")RequestBody replace,
                                       @Part MultipartBody.Part file);
+
+        @GET("/api2/repos/{repoId}/upload-link/")
+        Call<String>  getUploadLink(@Path("repoId")String repoId,
+                                  @Query("p")String path);
+
     }
 
 
