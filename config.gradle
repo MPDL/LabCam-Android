@@ -80,7 +80,8 @@ ext{
 
     //rxpermissions
     "rxpermissions"             :   "com.github.tbruyelle:rxpermissions:0.12",
-    "rxjava3"                   :   "io.reactivex.rxjava3:rxjava:3.0.4"
+    "rxjava3"                   :   "io.reactivex.rxjava3:rxjava:3.0.4",
+    "rxandroid"                 :   "io.reactivex.rxjava3:rxandroid:3.0.0"
 
     ]
 

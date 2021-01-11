@@ -12,6 +12,7 @@ public class KeeperDirItem implements LayoutItemType {
     private String path;
     private String repoId;
     private String repoName;
+    private boolean encrypted;
 
 
     public String getId() {
@@ -68,6 +69,14 @@ public class KeeperDirItem implements LayoutItemType {
 
     public void setRepoName(String repoName) {
         this.repoName = repoName;
+    }
+
+    public boolean isEncrypted() {
+        return encrypted;
+    }
+
+    public void setEncrypted(boolean encrypted) {
+        this.encrypted = encrypted;
     }
 
     @Override
