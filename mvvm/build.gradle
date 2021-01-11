@@ -85,6 +85,7 @@ dependencies {
 
     api rootProject.ext.dependencies["rxpermissions"]
     api rootProject.ext.dependencies["rxjava3"]
+    api rootProject.ext.dependencies["rxandroid"]
 
 
 

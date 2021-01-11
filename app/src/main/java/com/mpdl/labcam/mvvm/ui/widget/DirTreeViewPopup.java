@@ -101,6 +101,9 @@ public class DirTreeViewPopup extends CustomPopupWindow {
         //TODO: 确保id唯一，重复repo只取第一次
         List<String> repoIds = new ArrayList<>();
         for (KeeperDirItem bean: data){
+            if (DirTreeViewBuilder.isRepo(bean) && bean.isEncrypted()){
+                continue;
+            }
             if ("rw".equals(bean.getPermission()) && !repoIds.contains(bean.getName())){
                 filterData.add(bean);
                 repoIds.add(bean.getName());
@@ -233,11 +236,11 @@ public class DirTreeViewPopup extends CustomPopupWindow {
             return new DirTreeViewPopup(this);
         }
 
-        public boolean isRepo(KeeperDirItem item){
+        public static boolean isRepo(KeeperDirItem item){
             if (item == null){
                 return false;
             }
-            return "repo".equals(item.getType());
+            return "repo".equals(item.getType()) || "srepo".equals(item.getType()) || "grepo".equals(item.getType());
         }
 
         public void recoveryState(TreeNode treeNode){
