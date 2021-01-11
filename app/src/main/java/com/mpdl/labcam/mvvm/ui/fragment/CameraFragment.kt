@@ -35,6 +35,7 @@ import com.google.mlkit.common.MlKitException
 import com.mpdl.labcam.R
 import com.mpdl.labcam.detecort.TextRecognitionProcessor
 import com.mpdl.labcam.detecort.VisionImageProcessor
+import com.mpdl.labcam.event.MessageEvent
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
 import com.mpdl.labcam.mvvm.ui.widget.*
@@ -42,13 +43,20 @@ import com.mpdl.labcam.mvvm.vm.CameraViewModel
 import com.mpdl.labcam.treeviewbase.TreeNode
 import com.mpdl.mvvm.base.BaseFragment
 import com.mpdl.mvvm.common.Preference
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.jessyan.autosize.utils.AutoSizeUtils
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import org.koin.androidx.viewmodel.ext.android.getViewModel
-import org.simple.eventbus.EventBus
-import org.simple.eventbus.Subscriber
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -90,6 +98,8 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
     private var dirTreeViewPopup: DirTreeViewPopup? = null
     private var changeDirDialog: AlertDialog? = null
+
+    var ocrTextDisposable : Disposable? = null
 
 //    private var curTreeNode: TreeNode<KeeperDirItem>? = null
 
@@ -135,7 +145,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         displayManager.registerDisplayListener(displayListener, null)
         outputDirectory = MainActivity.getOutputDirectory(requireContext())
 
-        setOcrStatus()
+//        setOcrStatus()
 
         checkDirPath()
 
@@ -221,7 +231,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         btn_ocr.setOnClickListener {
             MainActivity.openOcr = !MainActivity.openOcr
             MainActivity.octText = ""
-            setOcrStatus()
+            setOcrStatus(MainActivity.openOcr)
         }
 
 /*        sv_ocr.setOnTouchListener { view, motionEvent ->
@@ -237,7 +247,6 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
         mSensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
         mSensorManager?.registerListener(this , mSensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME)
-
     }
 
 
@@ -373,7 +382,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             analysisUseCase?.setAnalyzer(ContextCompat.getMainExecutor(requireContext()),
                 ImageAnalysis.Analyzer { imageProxy: ImageProxy ->
                     Timber.e("imageProxy: ${imageProxy.width}")
-                    if (MainActivity.openOcr){
+                    if (MainActivity.openOcr && isResumed){
                         val isImageFlipped =
                             lensFacing == CameraSelector.LENS_FACING_FRONT
                         val rotationDegrees =
@@ -388,9 +397,13 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                             )
                         }
                         needUpdateGraphicOverlayImageSourceInfo = false
-
                         try {
-                            imageProcessor!!.processImageProxy(imageProxy, graphicOverlay)
+                            lifecycleScope.launchWhenResumed {
+                                delay(1000)
+                                withContext(Dispatchers.Main){
+                                    imageProcessor!!.processImageProxy(imageProxy, graphicOverlay)
+                                }
+                            }
                         } catch (e: MlKitException) {
                             Timber.e("Failed to process image. Error: ${e.localizedMessage}")
                         }
@@ -433,8 +446,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                         val savedUri = output.savedUri ?: Uri.fromFile(photoFile)
 
-                        setGalleryThumbnail(savedUri)
-
+                        lifecycleScope.launch(Dispatchers.Main){
+                            setGalleryThumbnail(savedUri)
+                            ll_ocr.visibility = View.GONE
+                        }
                         lifecycleScope.launch(Dispatchers.IO) {
                             var bitmap:Bitmap? = BitmapFactory.decodeFile(savedUri.toFile().absolutePath)
                             bitmap?.let {
@@ -511,17 +526,16 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         }
     }
 
-    private fun setOcrStatus() {
+    private fun setOcrStatus(open:Boolean) {
         Timber.d("openOcr: ${MainActivity.openOcr}")
-        updateIcon()
-        if (MainActivity.openOcr){
+        if (open){
             iv_ocr.setImageResource(R.mipmap.ic_ocr_on)
-            try {
-                bindAnalysisUseCase()
-            }catch (e:java.lang.Exception){}
+            ocrTextTimer()
+            updateIcon()
         }else{
             iv_ocr.setImageResource(R.mipmap.ic_ocr_off)
             ll_ocr.visibility = View.GONE
+            ocrTextDisposable?.dispose()
         }
     }
 
@@ -775,6 +789,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         cameraExecutor!!.shutdown()
         displayManager.unregisterDisplayListener(displayListener)
         mSensorManager?.unregisterListener(this)
+        ocrTextDisposable?.dispose()
     }
 
     var progressDialog: ProgressDialog? = null
@@ -800,6 +815,16 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     override fun onResume() {
         super.onResume()
         MainActivity.startUpload()
+        ll_ocr.post {
+            setOcrStatus(MainActivity.openOcr)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (MainActivity.openOcr){
+            setOcrStatus(false)
+        }
     }
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
@@ -818,16 +843,16 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         // Don't trust the angle if the magnitude is small compared to the y
         // value
 
-
         /*
         //OCR test
         //var ocrText = "Don't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is smalDon't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small Don't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the yDon't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y Don't trust the angle if the magnitude is small compared to the y "
         var ocrText = "v: $values \norientation: $orientation \nX; $X \nY; $Y \nZ; $Z "
-        Timber.e("jaccard ${TextRecognitionProcessor.jaccard(MainActivity.octText,ocrText)}")
-        if(TextRecognitionProcessor.jaccard(MainActivity.octText,ocrText) < 0.8 && MainActivity.openOcr){
+//        Timber.e("jaccard ${TextRecognitionProcessor.jaccard(MainActivity.octText,ocrText)}")
+        if(MainActivity.openOcr){
             MainActivity.octText = ocrText
-            changeOcrText(ocrText)
-        }*/
+//            changeOcrText(ChangeOcrTextEvent(ocrText))
+        }
+        */
 
         if (magnitude * 4 >= Z * Z) {
             // 屏幕旋转时
@@ -867,13 +892,20 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         Toast.makeText(requireContext(),"Upload dir: "+saveDir.repoName+saveDir.path +"\n"+"Upload via:"+resources.getStringArray(R.array.upload_network)[MainActivity.getUploadNetwork()],Toast.LENGTH_LONG).show()
     }
 
-    @Subscriber(tag = MainActivity.EVENT_CHANGE_UPLOAD_PATH)
-    fun changeUploadPath(msg:String){
-        showChangeDir()
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun messageEvent(event: MessageEvent){
+        when(event.type){
+            MainActivity.EVENT_CHANGE_UPLOAD_PATH->{
+                showChangeDir()
+            }
+            MainActivity.EVENT_CHANGE_OCR_TEXT->{
+//                changeOcrText(event.message)
+            }
+        }
+
     }
 
-    @Subscriber(tag = MainActivity.EVENT_CHANGE_OCR_TEXT)
-    fun changeOcrText(text:String){
+    fun changeOcrText(text: String){
         if (TextUtils.isEmpty(text)){
             ll_ocr.visibility = View.GONE
         }else if(MainActivity.openOcr){
@@ -882,6 +914,19 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                 tv_ocr.text = text
             }
         }
+    }
+
+    private fun ocrTextTimer(){
+        if (ocrTextDisposable != null){
+            ocrTextDisposable?.dispose()
+        }
+        ocrTextDisposable =
+            Observable.interval(500,3000,TimeUnit.MILLISECONDS)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe {
+                changeOcrText(MainActivity.octText)
+            }
     }
 
 

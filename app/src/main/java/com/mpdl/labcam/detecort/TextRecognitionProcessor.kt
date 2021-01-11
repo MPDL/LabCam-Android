@@ -23,9 +23,10 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
+import com.mpdl.labcam.event.MessageEvent
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity
 import com.mpdl.labcam.mvvm.ui.widget.GraphicOverlay
-import org.simple.eventbus.EventBus
+import org.greenrobot.eventbus.EventBus
 
 
 /** Processor for the text detector demo.  */
@@ -46,7 +47,7 @@ class TextRecognitionProcessor(context: Context) : VisionProcessorBase<Text>(con
 
     if(jaccard(MainActivity.octText,text.text) < 0.8){
       MainActivity.octText = text.text
-      EventBus.getDefault().post(text.text,MainActivity.EVENT_CHANGE_OCR_TEXT)
+      EventBus.getDefault().post(MessageEvent(MainActivity.EVENT_CHANGE_OCR_TEXT,text.text))
     }
 
     logExtrasForTesting(text)

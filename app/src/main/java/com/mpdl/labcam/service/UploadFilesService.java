@@ -7,13 +7,14 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
+import com.mpdl.labcam.event.MessageEvent;
 import com.mpdl.labcam.mvvm.repository.bean.KeeperDirItem;
 import com.mpdl.labcam.mvvm.ui.activity.MainActivity;
+import org.greenrobot.eventbus.EventBus;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.simple.eventbus.EventBus;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -144,12 +145,12 @@ public class UploadFilesService extends Service {
         if (mCompositeDisposable == null) {
             mCompositeDisposable = new CompositeDisposable();
         }
-        mCompositeDisposable.add(disposable);//将所有subscription放入,集中处理
+        mCompositeDisposable.add(disposable);
     }
 
     protected void unDispose() {
         if (mCompositeDisposable != null) {
-            mCompositeDisposable.clear();//保证activity结束时取消所有正在执行的订阅
+            mCompositeDisposable.clear();
         }
     }
 
@@ -212,7 +213,7 @@ public class UploadFilesService extends Service {
                         //通知修改地址
                         KeeperDirItem item = MainActivity.Companion.getCurDirItem();
                         if (item == null){
-                            EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
+                            EventBus.getDefault().post(new MessageEvent(MainActivity.EVENT_CHANGE_UPLOAD_PATH,""));
                         }else {
                             MainActivity.Companion.getRetrofit()
                                     .create(UploadApi.class)
@@ -282,8 +283,7 @@ public class UploadFilesService extends Service {
                                                 if (error.contains("Parent dir doesn't exist.") || error.contains("Failed to get repo")){
                                                     if (errorUrl == null || error.equals(MainActivity.Companion.getUploadUrl())){
                                                         errorUrl = MainActivity.Companion.getUploadUrl();
-                                                        EventBus.getDefault().post("", MainActivity.EVENT_CHANGE_UPLOAD_PATH);
-                                                    }
+                                                        EventBus.getDefault().post(new MessageEvent(MainActivity.EVENT_CHANGE_UPLOAD_PATH,""));                                                    }
                                                 }else {
                                                     Toast.makeText(UploadFilesService.this,"Upload failed: "+error,Toast.LENGTH_SHORT).show();
                                                 }

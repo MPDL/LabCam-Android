@@ -12,8 +12,8 @@ android {
         applicationId "de.mpg.mpdl.labcam"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 105
-        versionName "1.0.5"
+        versionCode 106
+        versionName "1.0.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -106,7 +106,8 @@ dependencies {
     debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
     releaseImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$leakcanary_version"
 
-    implementation "org.simple:androideventbus:1.0.5.1"
+//    implementation "org.simple:androideventbus:1.0.5.1"
+    implementation 'org.greenrobot:eventbus:3.2.0'
     // nav
     implementation rootProject.ext.dependencies["nav-fragment-ktx"]
     implementation rootProject.ext.dependencies["nav-ui-ktx"]
