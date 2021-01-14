@@ -65,7 +65,7 @@ public class UploadFilesService extends Service {
 
         mVideoExecutor = new ThreadPoolExecutor(2,3,10, TimeUnit.SECONDS,new LinkedBlockingQueue<>(100));
 
-        addDispose(Observable.interval(60,30,TimeUnit.SECONDS,Schedulers.io())
+        addDispose(Observable.interval(30,15,TimeUnit.SECONDS,Schedulers.io())
                 .subscribe(aLong -> {
                     File fileDir = MainActivity.Companion.getOutputDirectory(this);
                     Timber.d("setData uploadStart:"+uploadStart +"  uploadingNameList.size():"+uploadingNameList.size() +" \nfileDir.listFiles():"+fileDir.listFiles().length);

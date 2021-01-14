@@ -53,7 +53,7 @@ public class TipsDialog extends AlertDialog {
         private OnClickListener mPositiveButtonListener;
 
         public TipsBuilder(@NonNull Context context) {
-            this(context,0);
+            this(context,R.style.Theme_AppCompat_Dialog_Alert);
         }
 
         public TipsBuilder setTitle(@StringRes int titleId) {
