@@ -72,6 +72,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
     override fun onPause() {
         super.onPause()
         isResume = false
+        uploadFilesService?.errorUrl = null
     }
 
     override fun onBackPressed() {
@@ -91,6 +92,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
         const val EVENT_CHANGE_UPLOAD_PATH:String = "event_change_upload_path"
         const val EVENT_CHANGE_OCR_TEXT:String = "event_change_ocr_text"
         private const val SP_UPLOAD_URL = "sp_upload_url"
+        private const val SP_UPLOAD_URL_TIME = "sp_upload_url_time"
         private const val SP_TOKEN = "sp_token"
         private const val SP_SAVE_DIRECTORY = "sp_save_directory"
         private const val SP_UPLOAD_NETWORK = "sp_upload_network"
@@ -174,6 +176,7 @@ class MainActivity: BaseActivity<MainViewModel>() {
         }
 
         private var uploadUrl: String? = ""
+        private var uploadUrlTime = 0L
         fun getUploadUrl(): String?{
             if (TextUtils.isEmpty(uploadUrl)){
                 uploadUrl = Preference.preferences.getString(SP_UPLOAD_URL,"")
@@ -181,9 +184,20 @@ class MainActivity: BaseActivity<MainViewModel>() {
             return uploadUrl
         }
 
+        fun getUploadUrlTime():Long{
+            if (uploadUrlTime == 0L){
+                uploadUrlTime = Preference.preferences.getLong(SP_UPLOAD_URL_TIME,0)
+            }
+            return uploadUrlTime;
+        }
+
         fun setUploadUrl(url: String){
+            uploadUrlTime = System.currentTimeMillis()
             uploadUrl = url
-            Preference.preferences.edit().putString(SP_UPLOAD_URL,url).apply()
+            Preference.preferences.edit()
+                .putString(SP_UPLOAD_URL,url)
+                .putLong(SP_UPLOAD_URL_TIME, uploadUrlTime)
+                .apply()
         }
 
         private var curDirItem: KeeperDirItem? = null

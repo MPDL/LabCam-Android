@@ -16,11 +16,11 @@ interface LabCamApi {
                       @Field("password") password: String):Response<LoginResponse>
 
 
-    @Headers("Cache-Control: public, max-age=" + 7*24*3600)
+    @Headers("Cache-Control: public, max-age=" + 3)
     @GET("api2/repos/")
     suspend fun getRepos():Response<List<KeeperDirItem>>
 
-    @Headers("Cache-Control: public, max-age=" + 7*24*3600)
+    @Headers("Cache-Control: public, max-age=" + 3)
     @GET("api2/repos/{repoId}/dir/")
     suspend fun getDir(
         @Path("repoId") repoId:String,

@@ -114,7 +114,9 @@ class LoginFragment: BaseFragment<LoginViewModel>() {
 
         observe(mViewModel.getUiState()){
             if (it.loginSuccess){
-                showDirTreeViewPopup()
+                Navigation.findNavController(requireActivity(),R.id.my_nav_host_fragment)
+                    .navigate(LoginFragmentDirections.actionLoginFragmentToCameraFragment())
+//                showDirTreeViewPopup()
             }
 
             if (it.showFileSelectorDialog){

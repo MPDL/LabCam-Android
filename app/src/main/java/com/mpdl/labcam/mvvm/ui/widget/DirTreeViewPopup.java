@@ -1,6 +1,7 @@
 package com.mpdl.labcam.mvvm.ui.widget;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.widget.TextView;
 import androidx.recyclerview.widget.DividerItemDecoration;
@@ -51,6 +52,18 @@ public class DirTreeViewPopup extends CustomPopupWindow {
             dirTreeViewBuilder.mDirTreeViewListener.onItemClick(dirTreeViewBuilder.rootNode);
         }
         super.show();
+    }
+
+    @Override
+    public void dismiss() {
+        if (MainActivity.Companion.getCurDirItem() == null){
+            Intent home = new Intent(Intent.ACTION_MAIN);
+            home.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            home.addCategory(Intent.CATEGORY_HOME);
+            dirTreeViewBuilder.context.startActivity(home);
+        }else {
+            super.dismiss();
+        }
     }
 
     public DirTreeViewPopup setDirTreeViewListener(DirTreeViewListener listener){

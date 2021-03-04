@@ -51,7 +51,7 @@ public class UploadFilesService extends Service {
     private ThreadPoolExecutor mVideoExecutor;
     private boolean uploadStart;
     private List<String> uploadingNameList = new ArrayList<>();
-    private String errorUrl;
+    public String errorUrl;
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -215,28 +215,7 @@ public class UploadFilesService extends Service {
                         if (item == null){
                             EventBus.getDefault().post(new MessageEvent(MainActivity.EVENT_CHANGE_UPLOAD_PATH,""));
                         }else {
-                            MainActivity.Companion.getRetrofit()
-                                    .create(UploadApi.class)
-                                    .getUploadLink(item.getRepoId(),item.getPath())
-                                    .enqueue(new Callback<String>() {
-                                        @Override
-                                        public void onResponse(Call<String> call, Response<String> response) {
-                                            if (response!=null && response.isSuccessful()){
-                                                String uploadUrl = response.body();
-                                                Timber.d("uploadUrl %s",uploadUrl);
-                                                if (!TextUtils.isEmpty(uploadUrl)){
-                                                    MainActivity.Companion.setUploadUrl(uploadUrl);
-                                                }
-                                            }
-                                            getNextFile(file);
-                                        }
-
-                                        @Override
-                                        public void onFailure(Call<String> call, Throwable t) {
-                                            getNextFile(file);
-                                        }
-                                    });
-
+                            getUploadLink(item);
                         }
                         return;
                     }
@@ -276,16 +255,22 @@ public class UploadFilesService extends Service {
                                             //上传失败
                                             try {
                                                 String errorJson = response.errorBody().string();
-                                                Timber.e("上传失败 response："+errorJson);
+                                                Timber.e("上传失败 response："+response.code() + response.toString());
                                                 JSONObject jsonObject = new JSONObject(errorJson);
                                                 String error = jsonObject.getString("error");
                                                 Timber.e("上传失败 error："+error);
                                                 if (error.contains("Parent dir doesn't exist.") || error.contains("Failed to get repo")){
                                                     if (errorUrl == null || error.equals(MainActivity.Companion.getUploadUrl())){
                                                         errorUrl = MainActivity.Companion.getUploadUrl();
-                                                        EventBus.getDefault().post(new MessageEvent(MainActivity.EVENT_CHANGE_UPLOAD_PATH,""));                                                    }
+                                                        EventBus.getDefault().post(new MessageEvent(MainActivity.EVENT_CHANGE_UPLOAD_PATH,""));
+                                                    }
+                                                }else if (error.contains("Access denied")){
+                                                    if (System.currentTimeMillis() - MainActivity.Companion.getUploadUrlTime() > 3580){
+                                                        getUploadLink(MainActivity.Companion.getCurDirItem());
+                                                    }
+                                                    Timber.e("Access denied response: "+response.toString());
                                                 }else {
-                                                    Toast.makeText(UploadFilesService.this,"Upload failed: "+error,Toast.LENGTH_SHORT).show();
+                                                    Timber.e("Upload failed: "+response.toString());
                                                 }
                                             } catch (IOException | JSONException e) {
                                                 e.printStackTrace();
@@ -324,6 +309,30 @@ public class UploadFilesService extends Service {
             if (mFileSubscription != null){
                 mFileSubscription.request(1);
             }
+        }
+
+        private void getUploadLink(KeeperDirItem item){
+            MainActivity.Companion.getRetrofit()
+                    .create(UploadApi.class)
+                    .getUploadLink(item.getRepoId(),item.getPath())
+                    .enqueue(new Callback<String>() {
+                        @Override
+                        public void onResponse(Call<String> call, Response<String> response) {
+                            if (response!=null && response.isSuccessful()){
+                                String uploadUrl = response.body();
+                                Timber.d("uploadUrl %s",uploadUrl);
+                                if (!TextUtils.isEmpty(uploadUrl)){
+                                    MainActivity.Companion.setUploadUrl(uploadUrl);
+                                }
+                            }
+                            getNextFile(file);
+                        }
+
+                        @Override
+                        public void onFailure(Call<String> call, Throwable t) {
+                            getNextFile(file);
+                        }
+                    });
         }
     }
 
