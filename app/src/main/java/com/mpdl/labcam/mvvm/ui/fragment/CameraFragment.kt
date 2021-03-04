@@ -7,6 +7,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -23,6 +24,7 @@ import android.view.OrientationEventListener.ORIENTATION_UNKNOWN
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.camera.core.*
+import androidx.camera.core.impl.utils.Exif
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
@@ -101,6 +103,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
     var ocrTextDisposable : Disposable? = null
 
+    private var showDirTreeViewPopup = false
 //    private var curTreeNode: TreeNode<KeeperDirItem>? = null
 
 
@@ -186,7 +189,8 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             if (it.checkoutDirPathSuc){
                 MainActivity.getCurDirItem()?.let {saveDir->
                     MainActivity.startUpload()
-                    showUploadInfo(saveDir)                }
+                    showUploadInfo(saveDir)
+                }
             }
 
             if (it.showFileDirDialog){
@@ -451,15 +455,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                             ll_ocr.visibility = View.GONE
                         }
                         lifecycleScope.launch(Dispatchers.IO) {
-                            var bitmap:Bitmap? = BitmapFactory.decodeFile(savedUri.toFile().absolutePath)
-                            bitmap?.let {
-//                                if (MainActivity.openOcr){
-//                                    imageProcessor!!.processBitmap(it,savedUri.toFile().name ,graphicOverlay)
-//                                }
-                                saveBitmap(requireContext(),it)
-                            }
+                            var imgFile = savedUri.toFile()
+                            saveBitmap(requireContext(),imgFile)
                             if(MainActivity.openOcr){
-                                savedUri.toFile().name?.let {
+                                imgFile.name?.let {
                                     Timber.d("savedUri name : $it")
                                     saveOcrFile(it)
                                 }
@@ -472,7 +471,16 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         }
     }
 
-    private fun saveBitmap(context: Context, bitmap: Bitmap) {
+    @SuppressLint("RestrictedApi")
+    private fun saveBitmap(context: Context, imgFile: File) {
+        var bitmap:Bitmap? = BitmapFactory.decodeFile(imgFile.absolutePath)
+        if (bitmap == null)return
+        var degrees = Exif.createFromFile(imgFile).rotation
+        if (degrees != 0){
+            bitmap = rotateImage(bitmap,degrees)
+        }
+        Timber.e("imgFile degrees:$degrees")
+
         val values = ContentValues()
         values.put(MediaStore.Images.Media.DESCRIPTION, "This is an image")
         values.put(MediaStore.Images.Media.DISPLAY_NAME, "Image.jpg")
@@ -507,6 +515,12 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             }
         }
 
+    }
+
+    private fun rotateImage(bmp: Bitmap, degrees: Int):Bitmap{
+        var matrix = Matrix()
+        matrix.postRotate(degrees.toFloat())
+        return Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
     }
 
     private fun saveOcrFile(file:String){
@@ -572,7 +586,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     }
 
     private fun checkDirPath(){
-        if (!MainActivity.isCheckDirPath){
+        val curDirItem =MainActivity.getCurDirItem()
+        if (curDirItem == null){
+            showDirTreeViewPopup(false)
+        }else if (!MainActivity.isCheckDirPath){
             MainActivity.isCheckDirPath = true
             //没有网络
             if (MainActivity.curNetworkType == -1){
@@ -581,12 +598,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                 }
                 return
             }
-            val curDirItem =MainActivity.getCurDirItem()
-            if (curDirItem != null){
-                mViewModel.checkDirPath(curDirItem)
-            }else{
-                showDirTreeViewPopup(false)
-            }
+            mViewModel.checkDirPath(curDirItem)
         }
     }
 
@@ -611,6 +623,9 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                             MainActivity.setUploadUrl("")
                             tvDir?.text = item.repoName+item.path
                             dirTreeViewPopup?.dismiss()
+                        }
+                        if (setPopup != null && setPopup!!.isShowing){
+                            setPopup?.dismiss()
                         }
                     }
                 }
@@ -818,6 +833,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         ll_ocr.post {
             setOcrStatus(MainActivity.openOcr)
         }
+        if (showDirTreeViewPopup){
+            showDirTreeViewPopup = false;
+            showChangeDir()
+        }
     }
 
     override fun onPause() {
@@ -896,7 +915,12 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     fun messageEvent(event: MessageEvent){
         when(event.type){
             MainActivity.EVENT_CHANGE_UPLOAD_PATH->{
-                showChangeDir()
+                Timber.e("fragmen isResumed:$isResumed")
+                if (isResumed){
+                    showChangeDir()
+                }else{
+                    showDirTreeViewPopup = true
+                }
             }
             MainActivity.EVENT_CHANGE_OCR_TEXT->{
 //                changeOcrText(event.message)
