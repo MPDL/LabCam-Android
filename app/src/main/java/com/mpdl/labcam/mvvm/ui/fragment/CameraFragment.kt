@@ -63,6 +63,7 @@ import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
+import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -89,6 +90,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     private lateinit var outputDirectory: File
     private var flashMode:Int = ImageCapture.FLASH_MODE_AUTO
     private var setPopup: CustomPopupWindow? = null
+    private var autoDismissSetPopup = false;
     private var tvDir: TextView? = null
     private var mSensorManager: SensorManager? = null
     private var isPortrait = true
@@ -588,7 +590,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     private fun checkDirPath(){
         val curDirItem =MainActivity.getCurDirItem()
         if (curDirItem == null){
-            showDirTreeViewPopup(false)
+            showDirTreeViewPopup(true)
         }else if (!MainActivity.isCheckDirPath){
             MainActivity.isCheckDirPath = true
             //没有网络
@@ -649,7 +651,9 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
 
     private fun showSetPopup(){
+        autoDismissSetPopup = true
         if (setPopup == null){
+            autoDismissSetPopup = false
             setPopup = CustomPopupWindow
                 .builder()
                 .contentView(CustomPopupWindow.inflateView(requireActivity(),R.layout.popup_set))
@@ -662,11 +666,11 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                         tvDir!!.text = saveDir.repoName+saveDir.path
                     }
                     tvDir!!.setOnClickListener {
-                        showDirTreeViewPopup(false)
+                        showDirTreeViewPopup(true)
                     }
 
                     it.findViewById<ImageView>(R.id.iv_dir).setOnClickListener {
-                        showDirTreeViewPopup(false)
+                        showDirTreeViewPopup(true)
                     }
 
                     tvNetwork.setOnClickListener {
@@ -681,7 +685,6 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                         showLogoutDialog()
                     }
 
-
                     spNetwork.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
                         override fun onNothingSelected(p0: AdapterView<*>?) {
                         }
@@ -689,6 +692,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
                         override fun onItemSelected(p0: AdapterView<*>?, p1: View?, position: Int, p3: Long) {
                             MainActivity.setUploadNetwork(position)
                             tvNetwork.text = resources.getStringArray(R.array.upload_network)[position]
+                            if (setPopup != null && setPopup!!.isShowing && autoDismissSetPopup){
+                                setPopup!!.dismiss()
+                            }
+                            autoDismissSetPopup = true
                         }
                     }
                     spNetwork.setSelection(MainActivity.getUploadNetwork())
