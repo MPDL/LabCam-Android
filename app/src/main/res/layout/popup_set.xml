@@ -79,13 +79,13 @@
 
         <TextView
             android:id="@+id/tv_network"
-            android:text="Wifi only"
+            android:text="Wi-Fi Only"
             android:textSize="14sp"
             android:gravity="center_vertical"
             android:textColor="@color/colorBlack"
             app:layout_constraintTop_toBottomOf="@id/tv_dir"
             app:layout_constraintRight_toLeftOf="@id/iv_dir"
-            android:layout_width="wrap_content"
+            android:layout_width="74dp"
             android:paddingEnd="8dp"
             android:layout_height="44dp"/>
 
@@ -105,7 +105,6 @@
             app:layout_constraintRight_toRightOf="@id/iv_network"
             app:layout_constraintRight_toLeftOf="@id/tv_network"
             android:entries="@array/upload_network"
-            android:spinnerMode="dialog"
             android:layout_width="0dp"
             android:layout_height="0dp"/>
 

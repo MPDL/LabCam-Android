@@ -3,7 +3,7 @@
 
     <string-array name="upload_network">
         <item>Cellular</item>
-        <item>Wifi only</item>
+        <item>Wi-Fi Only</item>
     </string-array>
 
 
