@@ -546,7 +546,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         Timber.d("openOcr: ${MainActivity.openOcr}")
         if (open){
             iv_ocr.setImageResource(R.mipmap.ic_ocr_on)
-            ocrTextTimer()
+            ocrTextTimer(300L)
             updateIcon()
         }else{
             iv_ocr.setImageResource(R.mipmap.ic_ocr_off)
@@ -947,16 +947,19 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         }
     }
 
-    private fun ocrTextTimer(){
+    private fun ocrTextTimer(period:Long){
         if (ocrTextDisposable != null){
             ocrTextDisposable?.dispose()
         }
         ocrTextDisposable =
-            Observable.interval(500,3000,TimeUnit.MILLISECONDS)
+            Observable.interval(period,TimeUnit.MILLISECONDS)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
                 changeOcrText(MainActivity.octText)
+                if (!TextUtils.isEmpty(MainActivity.octText)){
+                    ocrTextTimer(3000L)
+                }
             }
     }
 
