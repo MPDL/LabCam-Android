@@ -74,6 +74,7 @@ import kotlin.math.min
 class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
     override fun initViewModel(): CameraViewModel = getViewModel()
 
+    private val SCANNING = "Scanning..."
     private var displayId: Int = -1
     private lateinit var viewFinder: CustomPreviewView
     private var graphicOverlay: GraphicOverlay? = null
@@ -546,6 +547,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         Timber.d("openOcr: ${MainActivity.openOcr}")
         if (open){
             iv_ocr.setImageResource(R.mipmap.ic_ocr_on)
+
+            MainActivity.octText = "Scanning..."
+            changeOcrText(MainActivity.octText)
+
             ocrTextTimer(300L)
             updateIcon()
         }else{
@@ -936,12 +941,17 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
 
     }
 
-    fun changeOcrText(text: String){
+    private fun changeOcrText(text: String){
         if (TextUtils.isEmpty(text)){
             ll_ocr.visibility = View.GONE
         }else if(MainActivity.openOcr){
             ll_ocr.visibility = View.VISIBLE
             if (text != tv_ocr.text){
+                if (SCANNING == text){
+                    tv_ocr.setTextColor(resources.getColor(R.color.colorAccent))
+                }else{
+                    tv_ocr.setTextColor(resources.getColor(R.color.colorWhite))
+                }
                 tv_ocr.text = text
             }
         }
@@ -957,7 +967,8 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
                 changeOcrText(MainActivity.octText)
-                if (!TextUtils.isEmpty(MainActivity.octText)){
+                if (!TextUtils.isEmpty(MainActivity.octText) && MainActivity.octText != SCANNING){
+
                     ocrTextTimer(3000L)
                 }
             }
