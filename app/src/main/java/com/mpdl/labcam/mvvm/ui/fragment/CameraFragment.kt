@@ -547,8 +547,10 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
         Timber.d("openOcr: ${MainActivity.openOcr}")
         if (open){
             iv_ocr.setImageResource(R.mipmap.ic_ocr_on)
+
             MainActivity.octText = "Scanning..."
             changeOcrText(MainActivity.octText)
+
             ocrTextTimer(300L)
             updateIcon()
         }else{
@@ -966,6 +968,7 @@ class CameraFragment: BaseFragment<CameraViewModel>(), SensorEventListener{
             .subscribe {
                 changeOcrText(MainActivity.octText)
                 if (!TextUtils.isEmpty(MainActivity.octText) && MainActivity.octText != SCANNING){
+
                     ocrTextTimer(3000L)
                 }
             }
