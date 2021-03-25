@@ -120,7 +120,7 @@ public class UploadFilesService extends Service {
                     public void onComplete() {
                         uploadStart = false;
                         if (fileDir.listFiles().length == 0){
-                            Timber.i("startUploadFile onComplete 上传完成：");
+                            Timber.i("startUploadFile onComplete：");
                         }
                     }
                 });
@@ -183,34 +183,30 @@ public class UploadFilesService extends Service {
         public void run() {
             if (file != null){
                 try {
-                    //没网络
                     if (!MainActivity.Companion.isNetworkConnected()){
-                        Timber.e("上传 File: 没网络");
+                        Timber.e("Upload File: no internet");
                         getNextFile(file);
                         return;
                     }
                     boolean networkMatch = MainActivity.Companion.getCurNetworkType() == 1 ||
                             MainActivity.Companion.getCurNetworkType() == MainActivity.Companion.getUploadNetwork();
-                    //网络状态不匹配
                     if (!networkMatch){
-                        Timber.e("上传 File: 网络状态不匹配");
+                        Timber.e("Upload File: wrong network type");
                         getNextFile(file);
                         return;
                     }
 
-                    //文件没内容
                     if (file.getName().matches(".*\\.md")){
                         if (TextUtils.isEmpty(openText(file.getPath()))){
-                            Timber.e("上传 File: 文件没内容");
+                            Timber.e("Upload File: no content");
                             getNextFile(file);
                             return;
                         }
                     }
 
-                    //上传地址不存在
                     if (TextUtils.isEmpty(MainActivity.Companion.getUploadUrl())){
-                        Timber.e("上传 File: 上传地址不存在");
-                        //通知修改地址
+                        Timber.e("Upload File: destination folder not exist");
+                        //update destination
                         KeeperDirItem item = MainActivity.Companion.getCurDirItem();
                         if (item == null){
                             EventBus.getDefault().post(new MessageEvent(MainActivity.EVENT_CHANGE_UPLOAD_PATH,""));
@@ -229,8 +225,8 @@ public class UploadFilesService extends Service {
                     if (saveDir != null){
                         path = saveDir.getPath();
                     }
-                    Timber.i("上传 File: "+file.getAbsolutePath());
-                    Timber.i("上传 Path : "+path);
+                    Timber.i("Upload File: "+file.getAbsolutePath());
+                    Timber.i("upload Path : "+path);
                     try {
                         MainActivity.Companion.getRetrofit()
                                 .create(UploadApi.class)
@@ -241,24 +237,23 @@ public class UploadFilesService extends Service {
                                     @Override
                                     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                                         if (response!=null && response.isSuccessful()){
-                                            Timber.i("上传成功：");
+                                            Timber.i("Upload Succeed：");
                                             errorUrl = null;
-                                            //上传成功
                                             file.delete();
                                             getNextFile(file);
-                                            //发送通知
+                                            //Send succeed notification
                                             if (!MainActivity.Companion.isResume() &&
                                                     MainActivity.Companion.getOutputDirectory(UploadFilesService.this).listFiles().length == 0){
                                                 MainActivity.Companion.sendNotification(UploadFilesService.this);
                                             }
                                         }else {
-                                            //上传失败
+                                            //Upload failed
                                             try {
                                                 String errorJson = response.errorBody().string();
-                                                Timber.e("上传失败 response："+response.code() + response.toString());
+                                                Timber.e("Upload failed response："+response.code() + response.toString());
                                                 JSONObject jsonObject = new JSONObject(errorJson);
                                                 String error = jsonObject.getString("error");
-                                                Timber.e("上传失败 error："+error);
+                                                Timber.e("Upload failed error："+error);
                                                 if (error.contains("Parent dir doesn't exist.") || error.contains("Failed to get repo")){
                                                     if (errorUrl == null || error.equals(MainActivity.Companion.getUploadUrl())){
                                                         errorUrl = MainActivity.Companion.getUploadUrl();
@@ -281,7 +276,7 @@ public class UploadFilesService extends Service {
 
                                     @Override
                                     public void onFailure(Call<ResponseBody> call, Throwable t) {
-                                        Timber.e("上传失败 t : "+t.getMessage());
+                                        Timber.e("Upload failed t : "+t.getMessage());
                                         getNextFile(file);
                                         t.printStackTrace();
                                     }
@@ -295,7 +290,7 @@ public class UploadFilesService extends Service {
                 } catch (Exception e) {
                     getNextFile(file);
                     e.printStackTrace();
-                    Timber.i("上传失败："+e.getMessage());
+                    Timber.i("Upload failed："+e.getMessage());
                 }
 
             }
@@ -305,7 +300,7 @@ public class UploadFilesService extends Service {
             if (file != null && uploadingNameList!= null){
                 uploadingNameList.remove(file.getName());
             }
-            //请求上传下一个文件
+            //get next file in queue
             if (mFileSubscription != null){
                 mFileSubscription.request(1);
             }

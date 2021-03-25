@@ -18,7 +18,7 @@ public class FocusCirceView extends View {
  
     private Paint paint;
     private static final String TAG = "FocusCirceView";
-    private float mX = getWidth()/2; //默认
+    private float mX = getWidth()/2; //default
     private float mY = getHeight()/2;
     public FocusCirceView(Context context) {
         super(context);
@@ -32,17 +32,13 @@ public class FocusCirceView extends View {
         this.mX = x;
         this.mY = y;
     }
- 
-    //重写draw方法
+
     @Override
     public void draw(Canvas canvas) {
         super.draw(canvas);
-        //实例化画笔
         paint = new Paint();
-        //给画笔设置颜色 #f4f4f4
         paint.setColor(Color.parseColor("#cccccc"));
-        //设置画笔属性
-        paint.setStyle(Paint.Style.STROKE);//空心圆
+        paint.setStyle(Paint.Style.STROKE);//Hollow circle
         paint.setStrokeWidth(4);
         Log.d(TAG, "draw: "+"width:"+getWidth()+"___height:"+getHeight());
         canvas.drawCircle(mX,mY,20,paint);
@@ -55,7 +51,7 @@ public class FocusCirceView extends View {
     }
  
     /***
-     * 缩放动画
+     * Zoom animation
      */
     public void myViewScaleAnimation(View myView) {
         ScaleAnimation animation = new ScaleAnimation(1.1f, 1f, 1.1f, 1f,

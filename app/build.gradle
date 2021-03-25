@@ -19,7 +19,6 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            // 设置支持的SO库架构
             abiFilters 'armeabi', 'x86' //, 'armeabi-v7a', 'x86_64', 'arm64-v8a'
         }
     }
@@ -70,23 +69,19 @@ android {
     }
 
     applicationVariants.all {
-        //判断是release还是debug版本
+        //release or debug
         def buildType = it.buildType.name
         def fileName
-        //只对Release包起作用，如果不是Release包则不变更输出路径，否则可能导致AS无法自动安装debug包。
         if (buildType == "release") {
             it.getPackageApplication().outputDirectory = new File(project.rootDir.absolutePath + "/apks")
         }
         it.outputs.each {
-            //只对Release包起作用，如果不是Release包则不变更名称。
             if (buildType == "release") {
-                //我此处的命名规则是：渠道名_项目名_版本名_创建时间_构建类型.apk
                 fileName = "${buildType}_v${defaultConfig.versionName}.apk"
-                //将名字打印出来，以便及时查看是否满意。
                 println "文件名：-----------------${fileName}"
-                //重新对apk命名。(适用于Gradle4.0以下版本)
+                //rename apk。(Earlier than Gradle4.0)
                 //it.outputFile = new File(it.outputFile.parent, fileName)
-                //重新对apk命名。(适用于Gradle4.0（含）以上版本)如果你Gradle版本是4.0以下版本则将上面的一行代码放开并注释下面的这一行。
+                //rename apk。(Gradle4.0 and above)
                 it.outputFileName = fileName
             }
         }

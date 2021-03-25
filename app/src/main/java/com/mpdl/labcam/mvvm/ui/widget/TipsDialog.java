@@ -36,7 +36,7 @@ public class TipsDialog extends AlertDialog {
         window.setBackgroundDrawableResource(android.R.color.transparent);
         WindowManager.LayoutParams lp = window.getAttributes();
         lp.gravity = Gravity.CENTER;
-        lp.width = AutoSizeUtils.dp2px(context,274);//宽高可设置具体大小;
+        lp.width = AutoSizeUtils.dp2px(context,274);
         lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
         getWindow().setAttributes(lp);
     }

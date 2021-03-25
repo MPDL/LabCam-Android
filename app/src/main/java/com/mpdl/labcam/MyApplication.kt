@@ -46,17 +46,17 @@ class MyApplication: Application() {
     }
 
     /**
-     * 根据 宽高比 设置屏幕适配方案
-     * 小于 0.6 根据宽度适配（手机）
-     * 大于 0.6 根据高度适配（平板）
+     * Screen Ration
+     * < 0.6 based on width（handy）
+     * > 0.6 based on height（tablet）
      */
     private fun setAutoSizeConfig(){
         val metric = DisplayMetrics()
         val mWindowManager: WindowManager =
             this.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         mWindowManager.defaultDisplay.getMetrics(metric)
-        val width: Int = metric.widthPixels // 屏幕宽度（像素）
-        val height: Int = metric.heightPixels // 屏幕宽度（像素）
+        val width: Int = metric.widthPixels
+        val height: Int = metric.heightPixels
         Timber.e("width: $width  height: $height width/height${width.toDouble()/height} isBaseOnWidth:${width.toDouble()/height<0.6}")
         AutoSizeConfig.getInstance().isBaseOnWidth = width.toDouble()/height<0.6
     }

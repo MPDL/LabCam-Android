@@ -150,9 +150,8 @@ class MainActivity: BaseActivity<MainViewModel>() {
                         .baseUrl(baseUrl)//BuildConfig.API_BASE_URL
                         .addConverterFactory(GsonConverterFactory.create(
                             GsonBuilder()
-                                //支持序列化值为 null 的参数
                                 .serializeNulls()
-                                //支持将序列化 key 为 Object 的 Map, 默认只能序列化 key 为 String 的 Map
+                                //enable maps with objects as keys, keys are Strings by default
                                 .enableComplexMapKeySerialization()
                                 .create()))
                         .build()
@@ -258,14 +257,14 @@ class MainActivity: BaseActivity<MainViewModel>() {
         }
 
         /**
-         * 用户选择的上传网络
+         * Upload network options
          * 0/1
          * Cellular/wifi
          */
         private var uploadNetwork:Int = -1
 
         /**
-         * 当前网络状态
+         * Current network type
          * -1/0/1
          * not network/Cellular/wifi
          */
@@ -315,12 +314,12 @@ class MainActivity: BaseActivity<MainViewModel>() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val mChannel = NotificationChannel(channelId, BuildConfig.BUILD_TYPE, NotificationManager.IMPORTANCE_DEFAULT)
                 mChannel.description = "upload success notify"
-                mChannel.enableLights(true)//是否显示通知指示灯
-                mChannel.enableVibration(true)//是否振动
-                mNotificationManager.createNotificationChannel(mChannel)//创建通知渠道
+                mChannel.enableLights(true)
+                mChannel.enableVibration(true)
+                mNotificationManager.createNotificationChannel(mChannel)
             }
             var mBuilder = NotificationCompat.Builder(context, channelId)
-                .setSmallIcon(R.mipmap.ic_launcher)//小图标
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setLargeIcon(BitmapFactory.decodeResource(context.resources,R.mipmap.ic_launcher))
                 .setContentTitle("LabCam")
                 .setContentText("Upload Completed")

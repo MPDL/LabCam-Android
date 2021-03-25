@@ -117,17 +117,16 @@ class TextRecognitionProcessor(context: Context) : VisionProcessorBase<Text>(con
       if (a == null && b == null) {
         return 1f
       }
-      // 都为空相似度为 1
       if (a == null || b == null) {
         return 0f
       }
       a.toCharArray().toHashSet()
       val aChar: Set<Char> = a.toCharArray().toSet()
       val bChar: Set<Char> = b.toCharArray().toSet()
-      // 交集数量
+      // Intersections count
       val intersection = aChar.intersect(bChar).size
       if (intersection == 0) return 0f
-      // 并集数量
+      // Unions count
       val union = aChar.union(bChar).size
       return intersection.toFloat() / union.toFloat()
     }

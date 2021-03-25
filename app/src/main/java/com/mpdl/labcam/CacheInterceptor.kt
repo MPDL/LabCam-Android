@@ -8,12 +8,12 @@ import okhttp3.Response
 
 class CacheInterceptor:Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        //拿到请求体
+        //get request body
         var request = chain.request()
-        //读接口上的@Headers里的注解配置
+        //read cacheControl from @Headers
         var cacheControl = request.cacheControl.toString()
         if (TextUtils.isEmpty(cacheControl)){
-            //如果没有添加cache 注解
+            //add cacheControl if not exist
             return chain.proceed(request)
         }else{
             if (MainActivity.isNetworkConnected()){
@@ -26,7 +26,7 @@ class CacheInterceptor:Interceptor {
 
             }else{
                 request = request.newBuilder()
-                    //强制使用缓存
+                    //force cache
                     .cacheControl(CacheControl.FORCE_CACHE)
                     .build()
                 return chain.proceed(request).newBuilder()

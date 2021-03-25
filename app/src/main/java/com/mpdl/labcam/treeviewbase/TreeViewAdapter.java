@@ -33,9 +33,9 @@ public class TreeViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     }
 
     /**
-     * 从nodes的结点中寻找展开了的非叶结点，添加到displayNodes中。
+     * find non-leaf node，add to displayNodes
      *
-     * @param nodes 基准点
+     * @param nodes anchor
      */
     private void findDisplayNodes(List<TreeNode> nodes) {
         for (TreeNode node : nodes) {

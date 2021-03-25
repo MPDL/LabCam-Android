@@ -74,7 +74,6 @@ public class CustomPreviewView extends PreviewView implements View.OnTouchListen
     public void cleanFocus(){
         Timber.d( "cleanFocus");
         try {
-            //抬起时清除画布,并移除视图
             focusCirceView.deleteCanvas();
             if (focusCirceView != null) {
                 ((ViewGroup)focusCirceView.getParent()).removeView(focusCirceView);
@@ -91,10 +90,10 @@ public class CustomPreviewView extends PreviewView implements View.OnTouchListen
         cleanFocus();
         if (focusCirceView!=null) {
             Timber.d("onTouch:ACTION_DOWN____mX: " + x + "__mY" + y);
-            focusCirceView.myViewScaleAnimation(focusCirceView);//动画效果
+            focusCirceView.myViewScaleAnimation(focusCirceView);//animation
             focusCirceView.setPoint(x,y);
             addView(focusCirceView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT)); //添加视图FocusCirceView
+                    ViewGroup.LayoutParams.MATCH_PARENT)); //add FocusCirceView
         }
     }
 

@@ -80,7 +80,7 @@ public class DirTreeViewPopup extends CustomPopupWindow {
             return;
         }
         Timber.e("setData TreeNode:"+node +"  data.size:"+data.size());
-        //防重复
+        //prevent duplicate entries
         if (!node.getChildList().isEmpty()){
             return;
         }
@@ -105,13 +105,12 @@ public class DirTreeViewPopup extends CustomPopupWindow {
     }
 
     /**
-     * 过滤出有权限的目录
+     * Filter data
      * @param data
      * @return
      */
     private List<KeeperDirItem> filterData(List<KeeperDirItem> data){
         List<KeeperDirItem> filterData = new ArrayList<>();
-        //TODO: 确保id唯一，重复repo只取第一次
         List<String> repoIds = new ArrayList<>();
         for (KeeperDirItem bean: data){
             if (DirTreeViewBuilder.isRepo(bean) && bean.isEncrypted()){
@@ -180,7 +179,7 @@ public class DirTreeViewPopup extends CustomPopupWindow {
                 rootNode = TreeNode.root();
                 curTreeNode = rootNode;
                 rvDir.setLayoutManager(new LinearLayoutManager(context));
-                //如果可以确定每个item的高度是固定的，设置这个选项可以提高性能
+                //Set to true can improve performance
                 rvDir.setHasFixedSize(true);
                 DividerItemDecoration itemDecoration = new DividerItemDecoration(context,DividerItemDecoration.VERTICAL);
                 itemDecoration.setDrawable(context.getDrawable(R.drawable.shape_item_dir_line));
