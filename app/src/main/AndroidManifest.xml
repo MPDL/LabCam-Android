@@ -43,10 +43,12 @@
             </intent-filter>
         </activity>
 
+        <!--
         <activity
             android:name="com.tencent.bugly.beta.ui.BetaActivity"
             android:configChanges="keyboardHidden|orientation|screenSize|locale"
             android:theme="@android:style/Theme.Translucent" />
+        -->
 
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
@@ -67,6 +69,7 @@
             android:name="com.google.firebase.ml.vision.DEPENDENCIES"
             android:value="ocr" />
 
+        <!--
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileProvider"
@@ -76,5 +79,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+        -->
     </application>
 </manifest>

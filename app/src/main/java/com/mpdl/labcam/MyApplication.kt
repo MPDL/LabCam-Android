@@ -11,8 +11,6 @@ import com.mpdl.labcam.di.mViewModelModule
 import com.mpdl.mvvm.common.Preference
 import com.mpdl.mvvm.di.mSingleModule
 import com.squareup.leakcanary.LeakCanary
-import com.tencent.bugly.Bugly
-import com.tencent.bugly.beta.Beta
 import me.jessyan.autosize.AutoSizeConfig
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -40,7 +38,7 @@ class MyApplication: Application() {
 
         setAutoSizeConfig()
 
-        initBugly()
+//        initBugly()
 
         Preference.setContext(applicationContext)
     }
@@ -61,6 +59,7 @@ class MyApplication: Application() {
         AutoSizeConfig.getInstance().isBaseOnWidth = width.toDouble()/height<0.6
     }
 
+    /*
     private fun initBugly(){
         Beta.largeIconId = R.mipmap.ic_launcher
         Beta.smallIconId = R.mipmap.ic_launcher
@@ -68,6 +67,7 @@ class MyApplication: Application() {
         Beta.upgradeCheckPeriod = 60 * 1000
         Bugly.init(applicationContext, BuildConfig.BUGLY_APP_ID, BuildConfig.DEBUG)
     }
+    */
 
 
     override fun onTrimMemory(level: Int) {
