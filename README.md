@@ -1,4 +1,4 @@
-# LabCam-iOS
+# LabCam-Android
 LabCam is a powerful helper/tool to upload your real-time photos to the associated KEEPER account.
 
 Key Features: 
