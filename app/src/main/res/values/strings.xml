@@ -9,4 +9,5 @@
     <string name="keeper">KEEPER</string>
     <string name="confirm">CONFIRM</string>
     <string name="cancel">CANCEL</string>
+    <string name="not_internet">Please connect to the internet</string>
 </resources>
