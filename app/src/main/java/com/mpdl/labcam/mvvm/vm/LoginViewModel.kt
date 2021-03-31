@@ -14,6 +14,7 @@ import com.mpdl.labcam.treeviewbase.TreeNode
 import com.mpdl.mvvm.base.BaseResult
 import com.mpdl.mvvm.base.BaseViewModel
 import com.mpdl.mvvm.globalsetting.IResponseErrorListener
+import retrofit2.HttpException
 import timber.log.Timber
 
 class LoginViewModel(application: Application,
@@ -43,6 +44,10 @@ class LoginViewModel(application: Application,
     }
 
     fun login(username: String, password: String){
+        if(!MainActivity.isNetworkConnected()){
+            loginUiState.postValue(LoginUiState(showToastMsg = mApplication.getString(R.string.not_internet)))
+            return
+        }
         loginUiState.postValue(LoginUiState(loading = true))
         apply(object : ResultCallBack<LoginResponse>{
             override suspend fun callBack(): BaseResult<LoginResponse>{
@@ -58,7 +63,11 @@ class LoginViewModel(application: Application,
                 loginUiState.postValue(LoginUiState(showToastMsg = mApplication.getString(R.string.login_fail)))
             }
         },{
-            loginUiState.postValue(LoginUiState(showToastMsg = mApplication.getString(R.string.login_fail)))
+            if (it is HttpException && it.code() == 400){
+                loginUiState.postValue(LoginUiState(showToastMsg = mApplication.getString(R.string.login_fail)))
+            }else{
+                mResponseErrorListener.handleResponseError(it)
+            }
         })
     }
 
